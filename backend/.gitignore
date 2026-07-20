@@ -1,0 +1,17 @@
+# Backend Dependencies
+node_modules/
+
+# Secrets
+.env
+.env.*
+
+# Logs
+*.log
+logs/
+
+# Uploaded Files
+uploads/
+
+# OS Files
+.DS_Store
+Thumbs.db
