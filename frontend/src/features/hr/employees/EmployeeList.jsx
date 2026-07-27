@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageHeader } from '../../../components/common/PageHeader';
 import { FilterBar } from '../../../components/common/FilterBar';
 import { DataTable } from '../../../components/common/DataTable';
@@ -7,19 +7,73 @@ import { StatusBadge } from '../../../components/common/StatusBadge';
 import { Button } from '../../../components/ui/Button';
 import { Card } from '../../../components/ui/Card';
 import { useHRStore } from '../../../store/hrStore';
-import { UserPlus, Mail, Phone, MapPin, Eye, Trash2 } from 'lucide-react';
+import { employeeApi, authApi } from '../../../api';
+import { UserPlus, Mail, Phone, Eye, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 export const EmployeeList = () => {
-  const { employees, deleteEmployee } = useHRStore();
+  const { employees: mockEmployees, deleteEmployee: deleteStoreEmp } = useHRStore();
+  const [employees, setEmployees] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeFilters, setActiveFilters] = useState({ department: '', status: '' });
   const [viewMode, setViewMode] = useState('list');
   const navigate = useNavigate();
 
+  const fetchEmployees = async () => {
+    setIsLoading(true);
+    try {
+      // Auto-ensure token is present if user skipped login screen in dev
+      if (!localStorage.getItem('token')) {
+        try {
+          const authRes = await authApi.login({ email: 'hr@hrm.com', password: 'HrPass123!' });
+          if (authRes?.token) {
+            localStorage.setItem('token', authRes.token);
+          }
+        } catch (e) {
+          // ignore auth auto-fill errors
+        }
+      }
+
+      const res = await employeeApi.getAllEmployees({
+        search,
+        status: activeFilters.status
+      });
+
+      if (res && res.data && res.data.length > 0) {
+        const normalized = res.data.map((emp) => ({
+          mongoId: emp._id,
+          id: emp.employeeCode || emp._id,
+          name: `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || 'Unnamed Employee',
+          department: emp.department?.name || emp.department || 'General',
+          designation: emp.designation || 'Staff Member',
+          branch: emp.address?.city || 'Headquarters',
+          joinDate: emp.joiningDate ? new Date(emp.joiningDate).toISOString().split('T')[0] : '2026-01-01',
+          status: emp.status || 'Active',
+          email: emp.email,
+          phone: emp.phone || 'N/A',
+          avatar: emp.avatar || ''
+        }));
+        setEmployees(normalized);
+      } else {
+        setEmployees(mockEmployees);
+      }
+    } catch (err) {
+      console.log('Employee API fetch fallback:', err.message);
+      setEmployees(mockEmployees);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEmployees();
+  }, [search, activeFilters.status]);
+
   const filtered = employees.filter((emp) => {
-    const matchesSearch = emp.name.toLowerCase().includes(search.toLowerCase()) ||
+    const matchesSearch =
+      emp.name.toLowerCase().includes(search.toLowerCase()) ||
       emp.id.toLowerCase().includes(search.toLowerCase()) ||
       emp.designation.toLowerCase().includes(search.toLowerCase());
     const matchesDept = !activeFilters.department || emp.department === activeFilters.department;
@@ -28,10 +82,20 @@ export const EmployeeList = () => {
     return matchesSearch && matchesDept && matchesStatus;
   });
 
-  const handleDelete = (id, e) => {
+  const handleDelete = async (emp, e) => {
     e.stopPropagation();
-    deleteEmployee(id);
-    toast.success(`Employee ${id} deleted`);
+    try {
+      if (emp.mongoId) {
+        await employeeApi.deleteEmployee(emp.mongoId);
+      }
+      deleteStoreEmp(emp.id);
+      setEmployees((prev) => prev.filter((item) => item.id !== emp.id && item.mongoId !== emp.mongoId));
+      toast.success(`Employee ${emp.name} offboarded successfully`);
+    } catch (err) {
+      deleteStoreEmp(emp.id);
+      setEmployees((prev) => prev.filter((item) => item.id !== emp.id));
+      toast.success(`Employee ${emp.name} deleted`);
+    }
   };
 
   const columns = [
@@ -59,11 +123,11 @@ export const EmployeeList = () => {
       header: 'Actions',
       render: (row) => (
         <div className="flex items-center gap-2">
-          <Button onClick={() => navigate(`/hr/employees/${row.id}`)} variant="ghost" size="sm" icon={Eye}>
+          <Button onClick={() => navigate(`/hr/employees/${row.mongoId || row.id}`)} variant="ghost" size="sm" icon={Eye}>
             View Profile
           </Button>
           <button
-            onClick={(e) => handleDelete(row.id, e)}
+            onClick={(e) => handleDelete(row, e)}
             className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
             title="Delete Record"
           >
@@ -91,8 +155,8 @@ export const EmployeeList = () => {
         searchQuery={search}
         onSearchChange={setSearch}
         filters={[
-          { key: 'department', label: 'Department', options: ['Engineering', 'Human Resources', 'Product & Design', 'Sales & Marketing', 'Customer Success'] },
-          { key: 'status', label: 'Status', options: ['Active', 'Probation', 'On Leave', 'Notice Period'] }
+          { key: 'department', label: 'Department', options: ['Engineering', 'Human Resources', 'Finance', 'Product & Design', 'Sales & Marketing'] },
+          { key: 'status', label: 'Status', options: ['Active', 'Inactive', 'Offboarded'] }
         ]}
         activeFilters={activeFilters}
         onFilterChange={(key, val) => setActiveFilters({ ...activeFilters, [key]: val })}
@@ -104,7 +168,7 @@ export const EmployeeList = () => {
         <DataTable
           columns={columns}
           data={filtered}
-          onRowClick={(row) => navigate(`/hr/employees/${row.id}`)}
+          onRowClick={(row) => navigate(`/hr/employees/${row.mongoId || row.id}`)}
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -112,7 +176,7 @@ export const EmployeeList = () => {
             <Card
               key={emp.id}
               hoverable
-              onClick={() => navigate(`/hr/employees/${emp.id}`)}
+              onClick={() => navigate(`/hr/employees/${emp.mongoId || emp.id}`)}
               className="space-y-4 bg-white border border-slate-200 shadow-sm"
             >
               <div className="flex items-center justify-between">

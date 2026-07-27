@@ -52,6 +52,8 @@ const attendanceRoutes = require('./src/routes/attendanceRoutes');
 const leaveRoutes = require('./src/routes/leaveRoutes');
 const payrollRoutes = require('./src/routes/payrollRoutes');
 const recruitmentRoutes = require('./src/routes/recruitmentRoutes');
+const dashboardRoutes = require('./src/routes/dashboardRoutes');
+const uploadRoutes = require('./src/routes/uploadRoutes');
 
 // Mount Routes
 app.use('/api/auth', authRoutes);
@@ -61,6 +63,8 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/leaves', leaveRoutes);
 app.use('/api/payroll', payrollRoutes);
 app.use('/api/recruitment', recruitmentRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/upload', uploadRoutes);
 
 app.use(errorHandler);
 

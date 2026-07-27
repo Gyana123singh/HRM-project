@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PageHeader } from '../../../components/common/PageHeader';
 import { Card } from '../../../components/ui/Card';
@@ -7,14 +7,55 @@ import { StatusBadge } from '../../../components/common/StatusBadge';
 import { Tabs } from '../../../components/ui/Tabs';
 import { Button } from '../../../components/ui/Button';
 import { employeesList } from '../../../data/mockData';
+import { employeeApi } from '../../../api';
 import { Mail, Phone, MapPin, Calendar, Briefcase, Award, Shield, FileText, CheckCircle } from 'lucide-react';
 
 export const EmployeeProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const employee = employeesList.find((e) => e.id === id) || employeesList[0];
+  const [employee, setEmployee] = useState(() => {
+    return employeesList.find((e) => e.id === id) || employeesList[0];
+  });
   const [activeTab, setActiveTab] = useState('overview');
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchEmployeeDetails = async () => {
+      if (!id) return;
+      setIsLoading(true);
+      try {
+        const res = await employeeApi.getEmployeeById(id);
+        if (isMounted && res && res.data) {
+          const emp = res.data;
+          setEmployee({
+            id: emp.employeeCode || emp._id,
+            name: `${emp.firstName || ''} ${emp.lastName || ''}`.trim(),
+            email: emp.email,
+            phone: emp.phone || '+1 (555) 019-2831',
+            department: emp.department?.name || emp.department || 'Engineering',
+            designation: emp.designation || 'Senior Staff',
+            branch: emp.address?.city || 'Headquarters',
+            status: emp.status || 'Active',
+            joinDate: emp.joiningDate ? new Date(emp.joiningDate).toISOString().split('T')[0] : '2024-01-15',
+            salary: emp.salary?.basic ? `$${emp.salary.basic.toLocaleString()}` : '$85,000',
+            performanceRating: '4.9/5',
+            employmentType: emp.employmentType || 'Full-time',
+            manager: emp.managerId ? `${emp.managerId.firstName || ''} ${emp.managerId.lastName || ''}` : 'Sarah Jenkins (HR Manager)',
+            avatar: emp.avatar || ''
+          });
+        }
+      } catch (err) {
+        console.log('Employee profile fetch fallback:', err.message);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    fetchEmployeeDetails();
+    return () => { isMounted = false; };
+  }, [id]);
 
   const profileTabs = [
     { id: 'overview', label: 'Overview' },

@@ -38,6 +38,15 @@ export const employeeApi = {
 
   createDepartment: async (deptData) => {
     return await axiosClient.post('/departments', deptData);
+  },
+
+  // Upload Document to Cloudinary via Multer backend
+  uploadDocument: async (fileFormData) => {
+    return await axiosClient.post('/upload', fileFormData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
   }
 };
 

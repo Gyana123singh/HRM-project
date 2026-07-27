@@ -51,11 +51,6 @@ export const AppRouter = () => {
           <Route path="/hr" element={<HRLayout />}>
             <Route index element={<Navigate to="/hr/dashboard" replace />} />
             <Route path="dashboard" element={<HRDashboard />} />
-            <Route path="organization/profile" element={<OrgProfile />} />
-            <Route path="organization/branches" element={<OrgProfile />} />
-            <Route path="organization/departments" element={<OrgProfile />} />
-            <Route path="organization/designations" element={<OrgProfile />} />
-            <Route path="organization/org-chart" element={<OrgChart />} />
             <Route path="employees" element={<EmployeeList />} />
             <Route path="employees/add" element={<AddEmployeeWizard />} />
             <Route path="employees/:id" element={<EmployeeProfile />} />
@@ -67,22 +62,8 @@ export const AppRouter = () => {
             <Route path="payroll" element={<PayrollDashboard />} />
             <Route path="payroll/structures" element={<PayrollDashboard />} />
             <Route path="payroll/payslips" element={<PayrollDashboard />} />
-            <Route path="recruitment" element={<CandidatesKanban />} />
-            <Route path="recruitment/jobs" element={<CandidatesKanban />} />
-            <Route path="recruitment/candidates" element={<CandidatesKanban />} />
-            <Route path="lifecycle/onboarding" element={<GoalsOKRs />} />
-            <Route path="lifecycle/performance" element={<GoalsOKRs />} />
-            <Route path="lifecycle/goals" element={<GoalsOKRs />} />
-            <Route path="lifecycle/recognition" element={<GoalsOKRs />} />
             <Route path="work/projects" element={<GoalsOKRs />} />
             <Route path="work/timesheets" element={<AttendanceMatrix />} />
-            <Route path="services/expenses" element={<ExpenseApprovals />} />
-            <Route path="services/assets" element={<ExpenseApprovals />} />
-            <Route path="services/documents" element={<ExpenseApprovals />} />
-            <Route path="services/helpdesk" element={<ExpenseApprovals />} />
-            <Route path="engagement/announcements" element={<HRDashboard />} />
-            <Route path="engagement/surveys" element={<HRDashboard />} />
-            <Route path="offboarding" element={<OnboardingTracker />} />
             <Route path="reports" element={<HRDashboard />} />
             <Route path="ai/assistant" element={<HRAIAssistant />} />
             <Route path="ai/screening" element={<ResumeScreening />} />

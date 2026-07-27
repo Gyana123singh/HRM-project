@@ -7,20 +7,20 @@ import { ShieldCheck, UserCheck, Lock, Mail, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export const Login = () => {
-  const [email, setEmail] = useState('sarah.jenkins@nexus.com');
-  const [password, setPassword] = useState('••••••••••••');
+  const [email, setEmail] = useState('hr@hrm.com');
+  const [password, setPassword] = useState('HrPass123!');
   const [selectedRole, setSelectedRole] = useState('hr_admin');
   const [isLoading, setIsLoading] = useState(false);
 
   const { login } = useAuthStore();
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
-    setTimeout(() => {
-      login(email, password, selectedRole);
+    try {
+      const res = await login(email, password, selectedRole);
       setIsLoading(false);
       toast.success(`Logged in successfully as ${selectedRole === 'hr_admin' ? 'HR Admin' : 'Employee'}`);
       if (selectedRole === 'hr_admin') {
@@ -28,15 +28,20 @@ export const Login = () => {
       } else {
         navigate('/employee/dashboard');
       }
-    }, 600);
+    } catch (err) {
+      setIsLoading(false);
+      toast.error(err.message || 'Login failed. Please check credentials.');
+    }
   };
 
   const handleQuickPreset = (roleType) => {
     setSelectedRole(roleType);
     if (roleType === 'hr_admin') {
-      setEmail('sarah.jenkins@nexus.com');
+      setEmail('hr@hrm.com');
+      setPassword('HrPass123!');
     } else {
-      setEmail('rahul.sharma@nexus.com');
+      setEmail('employee@hrm.com');
+      setPassword('EmpPass123!');
     }
   };
 

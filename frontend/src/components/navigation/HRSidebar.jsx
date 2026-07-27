@@ -39,18 +39,6 @@ export const HRSidebar = ({ collapsed, onToggle }) => {
       ]
     },
     {
-      key: 'organization',
-      label: 'ORGANIZATION',
-      icon: Building2,
-      items: [
-        { path: '/hr/organization/profile', label: 'Organization Profile' },
-        { path: '/hr/organization/branches', label: 'Branches' },
-        { path: '/hr/organization/departments', label: 'Departments' },
-        { path: '/hr/organization/designations', label: 'Designations' },
-        { path: '/hr/organization/org-chart', label: 'Organization Chart' }
-      ]
-    },
-    {
       key: 'employees',
       label: 'EMPLOYEES',
       icon: Users,
@@ -82,62 +70,12 @@ export const HRSidebar = ({ collapsed, onToggle }) => {
       ]
     },
     {
-      key: 'recruitment',
-      label: 'RECRUITMENT (ATS)',
-      icon: Briefcase,
-      items: [
-        { path: '/hr/recruitment', label: 'ATS Dashboard' },
-        { path: '/hr/recruitment/jobs', label: 'Job Openings' },
-        { path: '/hr/recruitment/candidates', label: 'Candidates Kanban' },
-        { path: '/careers', label: 'Public Career Portal ↗', external: true }
-      ]
-    },
-    {
-      key: 'lifecycle',
-      label: 'EMPLOYEE LIFECYCLE',
-      icon: Award,
-      items: [
-        { path: '/hr/lifecycle/onboarding', label: 'Onboarding' },
-        { path: '/hr/lifecycle/performance', label: 'Performance Reviews' },
-        { path: '/hr/lifecycle/goals', label: 'Goals & OKRs' },
-        { path: '/hr/lifecycle/recognition', label: 'Kudos & Recognition' }
-      ]
-    },
-    {
       key: 'work',
       label: 'WORK MANAGEMENT',
       icon: CheckSquare,
       items: [
         { path: '/hr/work/projects', label: 'Projects & Tasks' },
         { path: '/hr/work/timesheets', label: 'Timesheet Approvals' }
-      ]
-    },
-    {
-      key: 'services',
-      label: 'EMPLOYEE SERVICES',
-      icon: Laptop,
-      items: [
-        { path: '/hr/services/expenses', label: 'Expense Claims' },
-        { path: '/hr/services/assets', label: 'Asset Management' },
-        { path: '/hr/services/documents', label: 'Document Center' },
-        { path: '/hr/services/helpdesk', label: 'HR Help Desk' }
-      ]
-    },
-    {
-      key: 'engagement',
-      label: 'ENGAGEMENT',
-      icon: Megaphone,
-      items: [
-        { path: '/hr/engagement/announcements', label: 'Announcements' },
-        { path: '/hr/engagement/surveys', label: 'Pulse Surveys' }
-      ]
-    },
-    {
-      key: 'offboarding',
-      label: 'OFFBOARDING',
-      icon: UserMinus,
-      items: [
-        { path: '/hr/offboarding', label: 'Resignations & Clearance' }
       ]
     },
     {

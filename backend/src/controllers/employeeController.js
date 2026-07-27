@@ -1,4 +1,4 @@
-const Employee = require('../models/Employee');
+ const Employee = require('../models/Employee');
 const User = require('../models/User');
 
 // @desc    Get all employees with pagination, search, and filtering

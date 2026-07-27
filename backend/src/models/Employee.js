@@ -88,7 +88,15 @@ const EmployeeSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User'
-    }
+    },
+    documents: [
+      {
+        name: String,
+        url: String,
+        publicId: String,
+        uploadedAt: { type: Date, default: Date.now }
+      }
+    ]
   },
   {
     timestamps: true
