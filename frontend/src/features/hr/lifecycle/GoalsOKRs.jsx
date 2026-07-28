@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { PageHeader } from '../../../components/common/PageHeader';
 import { Card, StatCard } from '../../../components/ui/Card';
@@ -9,9 +9,11 @@ import { Modal } from '../../../components/ui/Modal';
 import { Input, Select } from '../../../components/ui/Input';
 import { StatusBadge } from '../../../components/common/StatusBadge';
 import { goalsList as initialGoals, onboardingTasks as initialOnboarding, employeesList } from '../../../data/mockData';
+import { lifecycleApi } from '../../../api/lifecycleApi';
+import { employeeApi } from '../../../api/employeeApi';
 import {
   Target, Plus, Calendar, Award, Star, Heart, CheckCircle2, UserCheck,
-  TrendingUp, Sparkles, MessageSquare, ThumbsUp, ShieldCheck
+  TrendingUp, Sparkles, MessageSquare, ThumbsUp, ShieldCheck, Loader2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -35,6 +37,8 @@ export const GoalsOKRs = () => {
   const [onboarding, setOnboarding] = useState(initialOnboarding);
   const [reviews, setReviews] = useState(initialReviews);
   const [kudos, setKudos] = useState(initialKudos);
+  const [dbEmployees, setDbEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // Modals
   const [isAddGoalOpen, setIsAddGoalOpen] = useState(false);
@@ -42,9 +46,9 @@ export const GoalsOKRs = () => {
   const [isGiveKudosOpen, setIsGiveKudosOpen] = useState(false);
 
   // New Item States
-  const [newGoal, setNewGoal] = useState({ title: '', target: '100%', weight: '30%', owner: 'Rahul Sharma', deadline: '2026-09-30' });
-  const [newReview, setNewReview] = useState({ employee: 'Rahul Sharma', reviewer: 'Alex Vance', period: 'Q3 2026 Review', rating: '4.8 / 5.0' });
-  const [newKudos, setNewKudos] = useState({ recipient: 'Rahul Sharma', badge: 'Innovation Star Award', message: '' });
+  const [newGoal, setNewGoal] = useState({ title: '', target: '100%', weight: '30%', owner: '', deadline: '2026-09-30' });
+  const [newReview, setNewReview] = useState({ employee: '', reviewer: 'Alex Vance', period: 'Q3 2026 Appraisal', rating: '4.8 / 5.0', remarks: '' });
+  const [newKudos, setNewKudos] = useState({ recipient: '', badge: 'Innovation Star Award', points: '+300 Pts', message: '' });
 
   // Map route to active tab
   const getActiveTab = () => {
@@ -63,6 +67,50 @@ export const GoalsOKRs = () => {
     else navigate('/hr/lifecycle/goals');
   };
 
+  // Fetch Lifecycle API Data
+  const fetchLifecycleData = async () => {
+    setLoading(true);
+    try {
+      const [onbRes, revRes, goalRes, kudRes, empRes] = await Promise.allSettled([
+        lifecycleApi.getOnboarding(),
+        lifecycleApi.getReviews(),
+        lifecycleApi.getGoals(),
+        lifecycleApi.getKudos(),
+        employeeApi.getAllEmployees()
+      ]);
+
+      if (onbRes.status === 'fulfilled' && Array.isArray(onbRes.value?.data)) {
+        setOnboarding(onbRes.value.data);
+      }
+      if (revRes.status === 'fulfilled' && Array.isArray(revRes.value?.data)) {
+        setReviews(revRes.value.data);
+      }
+      if (goalRes.status === 'fulfilled' && Array.isArray(goalRes.value?.data)) {
+        setGoals(goalRes.value.data);
+      }
+      if (kudRes.status === 'fulfilled' && Array.isArray(kudRes.value?.data)) {
+        setKudos(kudRes.value.data);
+      }
+      if (empRes.status === 'fulfilled' && Array.isArray(empRes.value?.data)) {
+        setDbEmployees(empRes.value.data);
+        if (empRes.value.data.length > 0) {
+          const firstEmpName = `${empRes.value.data[0].firstName} ${empRes.value.data[0].lastName}`;
+          setNewGoal((prev) => ({ ...prev, owner: prev.owner || firstEmpName }));
+          setNewReview((prev) => ({ ...prev, employee: prev.employee || firstEmpName }));
+          setNewKudos((prev) => ({ ...prev, recipient: prev.recipient || firstEmpName }));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load lifecycle data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLifecycleData();
+  }, []);
+
   const lifecycleTabs = [
     { id: 'onboarding', label: `Onboarding (${onboarding.length})` },
     { id: 'performance', label: `Performance Reviews (${reviews.length})` },
@@ -70,56 +118,72 @@ export const GoalsOKRs = () => {
     { id: 'recognition', label: `Kudos & Recognition (${kudos.length})` }
   ];
 
-  const handleCreateGoal = (e) => {
+  const handleCreateGoal = async (e) => {
     e.preventDefault();
-    const created = {
-      id: `G-10${goals.length + 1}`,
-      title: newGoal.title,
-      target: newGoal.target,
-      progress: 0,
-      weight: newGoal.weight,
-      deadline: newGoal.deadline,
-      owner: newGoal.owner,
-      status: 'In Progress'
-    };
-    setGoals([created, ...goals]);
-    toast.success(`OKR Objective "${newGoal.title}" created!`);
-    setIsAddGoalOpen(false);
-    setNewGoal({ title: '', target: '100%', weight: '30%', owner: 'Rahul Sharma', deadline: '2026-09-30' });
+    if (!newGoal.title) {
+      toast.error('Please enter an objective title');
+      return;
+    }
+    try {
+      const res = await lifecycleApi.createGoal(newGoal);
+      if (res?.success || res?.data) {
+        toast.success(`OKR Objective "${newGoal.title}" created successfully!`);
+        fetchLifecycleData();
+      }
+    } catch (err) {
+      console.error('Error creating goal:', err);
+      toast.error(err.message || 'Failed to create objective');
+    } finally {
+      setIsAddGoalOpen(false);
+      setNewGoal({ title: '', target: '100%', weight: '30%', owner: '', deadline: '2026-09-30' });
+    }
   };
 
-  const handleCreateReview = (e) => {
+  const handleCreateReview = async (e) => {
     e.preventDefault();
-    const created = {
-      id: `REV-0${reviews.length + 1}`,
-      employee: newReview.employee,
-      reviewer: newReview.reviewer,
-      period: newReview.period,
-      rating: newReview.rating,
-      status: 'Pending',
-      remarks: 'Review cycle initiated by HR Admin.'
-    };
-    setReviews([created, ...reviews]);
-    toast.success(`Performance review created for ${newReview.employee}!`);
-    setIsAddReviewOpen(false);
+    if (!newReview.employee) {
+      toast.error('Please select an employee for the review');
+      return;
+    }
+    try {
+      const res = await lifecycleApi.createReview(newReview);
+      if (res?.success || res?.data) {
+        toast.success(`Performance appraisal cycle initiated for ${newReview.employee}!`);
+        fetchLifecycleData();
+      }
+    } catch (err) {
+      console.error('Error creating review:', err);
+      toast.error(err.message || 'Failed to initiate performance review');
+    } finally {
+      setIsAddReviewOpen(false);
+      setNewReview({ employee: '', reviewer: 'Alex Vance', period: 'Q3 2026 Appraisal', rating: '4.8 / 5.0', remarks: '' });
+    }
   };
 
-  const handleGiveKudos = (e) => {
+  const handleGiveKudos = async (e) => {
     e.preventDefault();
-    const created = {
-      id: `KUD-0${kudos.length + 1}`,
-      recipient: newKudos.recipient,
-      sender: 'Sarah Jenkins (HR Admin)',
-      badge: newKudos.badge,
-      points: '+300 Pts',
-      message: newKudos.message,
-      time: 'Just now'
-    };
-    setKudos([created, ...kudos]);
-    toast.success(`Kudos sent to ${newKudos.recipient}! 🎉`);
-    setIsGiveKudosOpen(false);
-    setNewKudos({ recipient: 'Rahul Sharma', badge: 'Innovation Star Award', message: '' });
+    if (!newKudos.recipient || !newKudos.message) {
+      toast.error('Please select a recipient and enter a message');
+      return;
+    }
+    try {
+      const res = await lifecycleApi.giveKudos(newKudos);
+      if (res?.success || res?.data) {
+        toast.success(`Kudos awarded to ${newKudos.recipient}! 🎉`);
+        fetchLifecycleData();
+      }
+    } catch (err) {
+      console.error('Error giving kudos:', err);
+      toast.error(err.message || 'Failed to send kudos');
+    } finally {
+      setIsGiveKudosOpen(false);
+      setNewKudos({ recipient: '', badge: 'Innovation Star Award', points: '+300 Pts', message: '' });
+    }
   };
+
+  const employeeOptions = dbEmployees.length > 0
+    ? dbEmployees.map((e) => ({ label: `${e.firstName} ${e.lastName} (${e.employeeCode})`, value: `${e.firstName} ${e.lastName}` }))
+    : employeesList.map((e) => ({ label: e.name, value: e.name }));
 
   return (
     <div className="space-y-6 animate-fade-in max-w-6xl">
@@ -148,29 +212,36 @@ export const GoalsOKRs = () => {
       {/* Tabs */}
       <Tabs tabs={lifecycleTabs} activeTab={activeTab} onChange={handleTabChange} />
 
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 text-[#534675] animate-spin" />
+          <span className="ml-3 text-sm font-medium text-slate-600">Loading Lifecycle & Performance Data...</span>
+        </div>
+      )}
+
       {/* TAB 1: ONBOARDING */}
-      {activeTab === 'onboarding' && (
+      {!loading && activeTab === 'onboarding' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {onboarding.map((item) => (
-            <Card key={item.id} className="space-y-4 bg-white border border-slate-200 shadow-xs hover:border-[#534675]/40 transition-all">
+          {onboarding.map((item, idx) => (
+            <Card key={item._id || item.id || idx} className="space-y-4 bg-white border border-slate-200 shadow-xs hover:border-[#534675]/40 transition-all">
               <div className="flex justify-between items-start">
                 <div>
                   <h4 className="text-base font-bold text-[#2c2738]">{item.employee}</h4>
                   <p className="text-xs text-slate-500 font-medium">Assigned Mentor: <strong className="text-[#534675]">{item.mentor}</strong></p>
                 </div>
-                <StatusBadge status={item.status} />
+                <StatusBadge status={item.status || 'In Progress'} />
               </div>
 
               {/* Progress Bar */}
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs font-semibold">
-                  <span className="text-slate-500">Progress ({item.completed} / {item.total} Tasks)</span>
-                  <span className="font-bold text-[#534675]">{item.progress}%</span>
+                  <span className="text-slate-500">Progress ({item.completed || 0} / {item.total || 8} Tasks)</span>
+                  <span className="font-bold text-[#534675]">{item.progress || 0}%</span>
                 </div>
                 <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
                   <div
                     className="h-full bg-gradient-to-r from-[#534675] to-[#9ec64c] rounded-full transition-all duration-500"
-                    style={{ width: `${item.progress}%` }}
+                    style={{ width: `${item.progress || 0}%` }}
                   />
                 </div>
               </div>
@@ -180,7 +251,7 @@ export const GoalsOKRs = () => {
       )}
 
       {/* TAB 2: PERFORMANCE REVIEWS */}
-      {activeTab === 'performance' && (
+      {!loading && activeTab === 'performance' && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <StatCard title="Active Review Cycle" value="Q2 2026" description="88% Completed" icon={Calendar} iconBg="bg-[#f0edf7] text-[#534675]" />
@@ -189,15 +260,15 @@ export const GoalsOKRs = () => {
           </div>
 
           <div className="space-y-3">
-            {reviews.map((rev) => (
-              <Card key={rev.id} className="space-y-3 bg-white border border-slate-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            {reviews.map((rev, idx) => (
+              <Card key={rev._id || rev.id || idx} className="space-y-3 bg-white border border-slate-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="space-y-1 flex-1">
                   <div className="flex items-center gap-3">
                     <h4 className="text-base font-bold text-[#2c2738]">{rev.employee}</h4>
                     <span className="px-2.5 py-0.5 bg-[#f2f8e8] text-[#59781b] text-[11px] font-bold rounded-md border border-[#9ec64c]/30">
                       Rating: {rev.rating}
                     </span>
-                    <StatusBadge status={rev.status} />
+                    <StatusBadge status={rev.status || 'Pending'} />
                   </div>
                   <p className="text-xs text-[#534675] font-semibold">{rev.period} • Evaluator: {rev.reviewer}</p>
                   <p className="text-xs text-[#2c2738] bg-slate-50 p-2.5 rounded-xl border border-slate-200 mt-2">
@@ -215,10 +286,10 @@ export const GoalsOKRs = () => {
       )}
 
       {/* TAB 3: GOALS & OKRS */}
-      {activeTab === 'goals' && (
+      {!loading && activeTab === 'goals' && (
         <div className="space-y-4">
-          {goals.map((goal) => (
-            <Card key={goal.id} className="space-y-3 bg-white border border-slate-200 shadow-xs">
+          {goals.map((goal, idx) => (
+            <Card key={goal._id || goal.id || idx} className="space-y-3 bg-white border border-slate-200 shadow-xs">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <h4 className="text-base font-bold text-[#2c2738] flex items-center gap-2">
@@ -227,19 +298,19 @@ export const GoalsOKRs = () => {
                   </h4>
                   <p className="text-xs text-slate-500 mt-1">Owner: <strong className="text-[#2c2738]">{goal.owner}</strong> • Weight: {goal.weight} • Deadline: {goal.deadline}</p>
                 </div>
-                <StatusBadge status={goal.status} />
+                <StatusBadge status={goal.status || 'In Progress'} />
               </div>
 
               {/* Visual Progress Bar */}
               <div className="space-y-1">
                 <div className="flex justify-between text-xs font-semibold">
                   <span className="text-slate-500">Target: {goal.target}</span>
-                  <span className="text-[#534675] font-bold">{goal.progress}% Completed</span>
+                  <span className="text-[#534675] font-bold">{goal.progress || 0}% Completed</span>
                 </div>
                 <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
                   <div
                     className="h-full bg-gradient-to-r from-[#534675] via-[#7b6d9e] to-[#9ec64c] rounded-full transition-all duration-500"
-                    style={{ width: `${goal.progress}%` }}
+                    style={{ width: `${goal.progress || 0}%` }}
                   />
                 </div>
               </div>
@@ -249,18 +320,18 @@ export const GoalsOKRs = () => {
       )}
 
       {/* TAB 4: KUDOS & RECOGNITION */}
-      {activeTab === 'recognition' && (
+      {!loading && activeTab === 'recognition' && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {kudos.map((kud) => (
-              <Card key={kud.id} className="space-y-3 bg-white border border-slate-200 shadow-xs flex flex-col justify-between hover:border-[#e95f87]/50 transition-all">
+            {kudos.map((kud, idx) => (
+              <Card key={kud._id || kud.id || idx} className="space-y-3 bg-white border border-slate-200 shadow-xs flex flex-col justify-between hover:border-[#e95f87]/50 transition-all">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="px-3 py-1 bg-rose-50 text-[#e95f87] text-xs font-bold rounded-lg border border-rose-200 flex items-center gap-1.5">
                       <Award className="w-3.5 h-3.5" />
                       {kud.badge}
                     </span>
-                    <span className="text-xs font-bold text-[#59781b]">{kud.points}</span>
+                    <span className="text-xs font-bold text-[#59781b]">{kud.points || '+300 Pts'}</span>
                   </div>
 
                   <h4 className="text-base font-bold text-[#2c2738]">{kud.recipient}</h4>
@@ -271,7 +342,7 @@ export const GoalsOKRs = () => {
 
                 <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
                   <span>Awarded by: <strong className="text-[#534675]">{kud.sender}</strong></span>
-                  <span>{kud.time}</span>
+                  <span>{kud.time || 'Just now'}</span>
                 </div>
               </Card>
             ))}
@@ -304,13 +375,21 @@ export const GoalsOKRs = () => {
             label="Objective Owner"
             value={newGoal.owner}
             onChange={(e) => setNewGoal({ ...newGoal, owner: e.target.value })}
-            options={employeesList.map(e => ({ label: e.name, value: e.name }))}
+            options={employeeOptions}
           />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-3">
             <Input
-              label="Evaluation Weight"
+              label="Target Metric"
+              value={newGoal.target}
+              onChange={(e) => setNewGoal({ ...newGoal, target: e.target.value })}
+              placeholder="e.g. 100%"
+              required
+            />
+            <Input
+              label="Weight (%)"
               value={newGoal.weight}
               onChange={(e) => setNewGoal({ ...newGoal, weight: e.target.value })}
+              placeholder="e.g. 30%"
               required
             />
             <Input
@@ -342,7 +421,7 @@ export const GoalsOKRs = () => {
             label="Select Employee"
             value={newReview.employee}
             onChange={(e) => setNewReview({ ...newReview, employee: e.target.value })}
-            options={employeesList.map(e => ({ label: e.name, value: e.name }))}
+            options={employeeOptions}
           />
           <Input
             label="Review Cycle Period"
@@ -352,11 +431,29 @@ export const GoalsOKRs = () => {
             required
           />
           <Input
-            label="Lead Reviewer"
+            label="Lead Evaluator / Reviewer"
             value={newReview.reviewer}
             onChange={(e) => setNewReview({ ...newReview, reviewer: e.target.value })}
+            placeholder="e.g. Alex Vance (VP Eng)"
             required
           />
+          <Input
+            label="Rating Target"
+            value={newReview.rating}
+            onChange={(e) => setNewReview({ ...newReview, rating: e.target.value })}
+            placeholder="e.g. 4.8 / 5.0"
+            required
+          />
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">Review Notes / Remarks</label>
+            <textarea
+              value={newReview.remarks || ''}
+              onChange={(e) => setNewReview({ ...newReview, remarks: e.target.value })}
+              rows={3}
+              className="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm text-[#2c2738] focus:outline-none focus:ring-2 focus:ring-[#534675]/30 focus:border-[#534675]"
+              placeholder="Enter appraisal instructions or initial performance notes..."
+            />
+          </div>
         </form>
       </Modal>
 
@@ -378,19 +475,29 @@ export const GoalsOKRs = () => {
             label="Select Recipient"
             value={newKudos.recipient}
             onChange={(e) => setNewKudos({ ...newKudos, recipient: e.target.value })}
-            options={employeesList.map(e => ({ label: e.name, value: e.name }))}
+            options={employeeOptions}
           />
-          <Select
-            label="Award Badge"
-            value={newKudos.badge}
-            onChange={(e) => setNewKudos({ ...newKudos, badge: e.target.value })}
-            options={[
-              { label: 'Innovation Star Award', value: 'Innovation Star Award' },
-              { label: 'Team Player Badge', value: 'Team Player Badge' },
-              { label: 'Customer Champion', value: 'Customer Champion' },
-              { label: 'Above & Beyond Award', value: 'Above & Beyond Award' }
-            ]}
-          />
+          <div className="grid grid-cols-2 gap-4">
+            <Select
+              label="Award Badge"
+              value={newKudos.badge}
+              onChange={(e) => setNewKudos({ ...newKudos, badge: e.target.value })}
+              options={[
+                { label: 'Innovation Star Award', value: 'Innovation Star Award' },
+                { label: 'Team Player Badge', value: 'Team Player Badge' },
+                { label: 'Customer Champion', value: 'Customer Champion' },
+                { label: 'Above & Beyond Award', value: 'Above & Beyond Award' },
+                { label: 'Leadership Excellence', value: 'Leadership Excellence' }
+              ]}
+            />
+            <Input
+              label="Reward Points"
+              value={newKudos.points || '+300 Pts'}
+              onChange={(e) => setNewKudos({ ...newKudos, points: e.target.value })}
+              placeholder="e.g. +500 Pts"
+              required
+            />
+          </div>
           <div className="space-y-1.5">
             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">Personal Message</label>
             <textarea

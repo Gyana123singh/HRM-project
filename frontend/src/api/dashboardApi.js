@@ -5,6 +5,10 @@ export const dashboardApi = {
     return await axiosClient.get('/dashboard/stats');
   },
 
+  getEmployeeStats: async () => {
+    return await axiosClient.get('/dashboard/employee-stats');
+  },
+
   getAnnouncements: async () => {
     return await axiosClient.get('/dashboard/announcements');
   },

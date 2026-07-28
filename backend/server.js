@@ -11,14 +11,11 @@ const errorHandler = require('./src/middleware/errorHandler');
 
 dotenv.config();
 
-connectDB();
-
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-
 app.use(helmet());
 
 app.use(
@@ -54,24 +51,41 @@ const payrollRoutes = require('./src/routes/payrollRoutes');
 const recruitmentRoutes = require('./src/routes/recruitmentRoutes');
 const dashboardRoutes = require('./src/routes/dashboardRoutes');
 const uploadRoutes = require('./src/routes/uploadRoutes');
+const organizationRoutes = require('./src/routes/organizationRoutes');
+const lifecycleRoutes = require('./src/routes/lifecycleRoutes');
+const ticketRoutes = require('./src/routes/ticketRoutes');
+const taskRoutes = require('./src/routes/taskRoutes');
+const notificationRoutes = require('./src/routes/notificationRoutes');
+const aiRoutes = require('./src/routes/aiRoutes');
 
 // Mount Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/attendance', attendanceRoutes);
-app.use('/api/leaves', leaveRoutes);
+app.use('/api/leave', leaveRoutes);
 app.use('/api/payroll', payrollRoutes);
 app.use('/api/recruitment', recruitmentRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/organization', organizationRoutes);
+app.use('/api/lifecycle', lifecycleRoutes);
+app.use('/api/tickets', ticketRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/ai', aiRoutes);
 
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`[HRM Server] Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-});
+const startServer = async () => {
+  await connectDB();
+  app.listen(PORT, () => {
+    console.log(`[HRM Server] Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+  });
+};
+
+startServer();
 
 module.exports = app;

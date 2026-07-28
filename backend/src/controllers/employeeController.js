@@ -115,8 +115,35 @@ exports.createEmployee = async (req, res, next) => {
       });
     }
 
+    const payload = { ...req.body };
+
+    // Resolve department string name to ObjectId if needed
+    if (department && typeof department === 'string' && !department.match(/^[0-9a-fA-F]{24}$/)) {
+      const Department = require('../models/Department');
+      const deptDoc = await Department.findOne({ name: { $regex: new RegExp(`^${department}$`, 'i') } });
+      if (deptDoc) {
+        payload.department = deptDoc._id;
+      } else {
+        delete payload.department;
+      }
+    }
+
+    // Resolve salary string to object if passed as string
+    if (typeof salary === 'string' || typeof salary === 'number') {
+      const numSalary = parseFloat(String(salary).replace(/[^0-9.]/g, '')) || 0;
+      payload.salary = {
+        basic: numSalary,
+        allowances: {
+          hra: Math.round(numSalary * 0.2),
+          medical: 2000,
+          transport: 1500
+        },
+        deductions: 0
+      };
+    }
+
     // Create Employee record
-    const employee = await Employee.create(req.body);
+    const employee = await Employee.create(payload);
 
     // Create User account linked to Employee
     const user = await User.create({

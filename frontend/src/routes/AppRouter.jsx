@@ -35,6 +35,10 @@ import { ResumeScreening } from '../features/hr/ai/ResumeScreening';
 // Employee ESS Pages
 import { EmployeeDashboard } from '../features/employee/dashboard/EmployeeDashboard';
 import { ESSPayslips } from '../features/employee/finance/ESSPayslips';
+import { ESSTasks } from '../features/employee/work/ESSTasks';
+import { ESSGoals } from '../features/employee/growth/ESSGoals';
+import { ESSHelpdesk } from '../features/employee/support/ESSHelpdesk';
+import { ESSProfile } from '../features/employee/profile/ESSProfile';
 
 export const AppRouter = () => {
   return (
@@ -62,6 +66,10 @@ export const AppRouter = () => {
             <Route path="payroll" element={<PayrollDashboard />} />
             <Route path="payroll/structures" element={<PayrollDashboard />} />
             <Route path="payroll/payslips" element={<PayrollDashboard />} />
+            <Route path="lifecycle/onboarding" element={<GoalsOKRs />} />
+            <Route path="lifecycle/performance" element={<GoalsOKRs />} />
+            <Route path="lifecycle/goals" element={<GoalsOKRs />} />
+            <Route path="lifecycle/recognition" element={<GoalsOKRs />} />
             <Route path="work/projects" element={<GoalsOKRs />} />
             <Route path="work/timesheets" element={<AttendanceMatrix />} />
             <Route path="reports" element={<HRDashboard />} />
@@ -76,21 +84,11 @@ export const AppRouter = () => {
           <Route path="/employee" element={<EmployeeLayout />}>
             <Route index element={<Navigate to="/employee/dashboard" replace />} />
             <Route path="dashboard" element={<EmployeeDashboard />} />
-            <Route path="attendance" element={<AttendanceMatrix />} />
-            <Route path="leave" element={<LeaveApprovals />} />
-            <Route path="timesheets" element={<EmployeeDashboard />} />
-            <Route path="tasks" element={<GoalsOKRs />} />
+            <Route path="tasks" element={<ESSTasks />} />
             <Route path="payslips" element={<ESSPayslips />} />
-            <Route path="expenses" element={<ExpenseApprovals />} />
-            <Route path="goals" element={<GoalsOKRs />} />
-            <Route path="training" element={<GoalsOKRs />} />
-            <Route path="documents" element={<ESSPayslips />} />
-            <Route path="assets" element={<AssetManagement />} />
-            <Route path="helpdesk" element={<ExpenseApprovals />} />
-            <Route path="directory" element={<EmployeeList />} />
-            <Route path="announcements" element={<EmployeeDashboard />} />
-            <Route path="profile" element={<EmployeeProfile />} />
-            <Route path="settings" element={<EmployeeDashboard />} />
+            <Route path="goals" element={<ESSGoals />} />
+            <Route path="helpdesk" element={<ESSHelpdesk />} />
+            <Route path="profile" element={<ESSProfile />} />
           </Route>
         </Route>
       </Route>

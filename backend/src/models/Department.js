@@ -10,17 +10,28 @@ const DepartmentSchema = new mongoose.Schema(
     },
     code: {
       type: String,
-      required: [true, 'Please add a department code'],
-      unique: true,
-      uppercase: true,
       trim: true
     },
     description: {
-      type: String
+      type: String,
+      default: ''
+    },
+    head: {
+      type: String,
+      default: 'Unassigned'
     },
     manager: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Employee'
+    },
+    employeeCount: {
+      type: Number,
+      default: 0
+    },
+    status: {
+      type: String,
+      enum: ['Active', 'Inactive'],
+      default: 'Active'
     },
     isActive: {
       type: Boolean,

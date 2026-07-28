@@ -15,7 +15,7 @@ const router = express.Router();
 router.use(protect); // Require JWT auth for all employee routes
 
 router.route('/')
-  .get(authorize('Admin', 'HR', 'Manager'), getAllEmployees)
+  .get(authorize('Admin', 'HR', 'Manager', 'Employee'), getAllEmployees)
   .post(authorize('Admin', 'HR'), createEmployee);
 
 router.route('/:id')

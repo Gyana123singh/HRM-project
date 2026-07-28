@@ -70,7 +70,12 @@ const EmployeeSchema = new mongoose.Schema(
     },
     salary: {
       basic: { type: Number, default: 0 },
-      allowances: { type: Number, default: 0 },
+      allowances: {
+        hra: { type: Number, default: 0 },
+        medical: { type: Number, default: 0 },
+        transport: { type: Number, default: 0 },
+        other: { type: Number, default: 0 }
+      },
       deductions: { type: Number, default: 0 }
     },
     address: {

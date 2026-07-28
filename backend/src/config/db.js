@@ -2,11 +2,13 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/hrm_db');
+    const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/hrm_db', {
+      serverSelectionTimeoutMS: 5000
+    });
     console.log(`[Database] MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
-    console.error(`[Database Error] ${error.message}`);
-    process.exit(1);
+    console.error(`[Database Error] Could not connect to MongoDB: ${error.message}`);
+    console.error(`[Database Help] Ensure local MongoDB service (mongod) is running or update MONGODB_URI in backend/.env`);
   }
 };
 

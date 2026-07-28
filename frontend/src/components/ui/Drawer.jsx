@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 export const Drawer = ({
@@ -6,8 +7,8 @@ export const Drawer = ({
   onClose,
   title,
   children,
-  position = 'right', // left, right
-  size = 'max-w-md'
+  position = 'right',
+  size = 'max-w-sm sm:max-w-md'
 }) => {
   useEffect(() => {
     if (isOpen) {
@@ -20,23 +21,25 @@ export const Drawer = ({
 
   if (!isOpen) return null;
 
-  const posClass = position === 'left' ? 'left-0 translate-x-0' : 'right-0 translate-x-0';
+  const posClass = position === 'left' ? 'left-0' : 'right-0';
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
+  const drawerContent = (
+    <div className="fixed inset-0 z-[9999] overflow-hidden flex justify-end">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity animate-fade-in"
         onClick={onClose}
       />
 
-      <div className={`fixed inset-y-0 ${posClass} w-full ${size} bg-white border-l border-slate-200 shadow-2xl flex flex-col z-10 transition-transform duration-300`}>
+      {/* Drawer Box */}
+      <div className={`relative ${posClass} w-full ${size} h-full bg-white border-l border-slate-200 shadow-2xl flex flex-col z-10 animate-slide-in-right`}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50/80">
-          <h3 className="text-base font-semibold text-[#2c2738]">{title}</h3>
+        <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50/90 shrink-0">
+          <h3 className="text-sm sm:text-base font-bold text-[#2c2738]">{title}</h3>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
+            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-xl transition-colors"
+            aria-label="Close drawer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -49,4 +52,6 @@ export const Drawer = ({
       </div>
     </div>
   );
+
+  return createPortal(drawerContent, document.body);
 };

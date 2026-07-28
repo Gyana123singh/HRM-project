@@ -1,61 +1,20 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, Calendar, Clock, DollarSign, Target, BookOpen,
-  Folder, Laptop, HelpCircle, Users, Megaphone, User, Settings, FileCheck
+  LayoutDashboard, DollarSign, Target, Award, HelpCircle, User
 } from 'lucide-react';
 
 export const EmployeeSidebar = ({ collapsed }) => {
   const essGroups = [
     {
-      label: 'HOME',
+      label: 'EMPLOYEE PORTAL',
       items: [
-        { path: '/employee/dashboard', label: 'My Dashboard', icon: LayoutDashboard }
-      ]
-    },
-    {
-      label: 'MY WORK',
-      items: [
-        { path: '/employee/attendance', label: 'Attendance & Regularization', icon: Clock },
-        { path: '/employee/leave', label: 'Leave Requests', icon: Calendar },
-        { path: '/employee/timesheets', label: 'Timesheets', icon: FileCheck },
-        { path: '/employee/tasks', label: 'Projects & Tasks', icon: Target }
-      ]
-    },
-    {
-      label: 'MY FINANCE',
-      items: [
+        { path: '/employee/dashboard', label: 'My Dashboard', icon: LayoutDashboard },
+        { path: '/employee/tasks', label: 'Projects & Tasks', icon: Target },
         { path: '/employee/payslips', label: 'Payslips & Salary', icon: DollarSign },
-        { path: '/employee/expenses', label: 'Expense Claims', icon: Folder }
-      ]
-    },
-    {
-      label: 'MY GROWTH',
-      items: [
-        { path: '/employee/goals', label: 'My Goals & OKRs', icon: Target },
-        { path: '/employee/training', label: 'Training Courses', icon: BookOpen }
-      ]
-    },
-    {
-      label: 'MY RESOURCES',
-      items: [
-        { path: '/employee/documents', label: 'Documents & Policies', icon: Folder },
-        { path: '/employee/assets', label: 'Assigned Assets', icon: Laptop },
-        { path: '/employee/helpdesk', label: 'HR Help Desk', icon: HelpCircle }
-      ]
-    },
-    {
-      label: 'COMPANY',
-      items: [
-        { path: '/employee/directory', label: 'Employee Directory', icon: Users },
-        { path: '/employee/announcements', label: 'Announcements & News', icon: Megaphone }
-      ]
-    },
-    {
-      label: 'ACCOUNT',
-      items: [
-        { path: '/employee/profile', label: 'My Profile', icon: User },
-        { path: '/employee/settings', label: 'Settings', icon: Settings }
+        { path: '/employee/goals', label: 'My Goals & OKRs', icon: Award },
+        { path: '/employee/helpdesk', label: 'HR Help Desk', icon: HelpCircle },
+        { path: '/employee/profile', label: 'My Profile', icon: User }
       ]
     }
   ];

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { PageHeader } from '../../../components/common/PageHeader';
 import { Card, StatCard } from '../../../components/ui/Card';
@@ -8,9 +8,11 @@ import { Modal } from '../../../components/ui/Modal';
 import { Input, Select } from '../../../components/ui/Input';
 import { StatusBadge } from '../../../components/common/StatusBadge';
 import { payrollData, employeesList } from '../../../data/mockData';
+import { payrollApi } from '../../../api/payrollApi';
+import { employeeApi } from '../../../api/employeeApi';
 import {
   DollarSign, CheckCircle, Calculator, FileText, Download, Play, Plus,
-  Search, ShieldCheck, Briefcase, CreditCard, ArrowUpRight
+  Search, ShieldCheck, Briefcase, CreditCard, ArrowUpRight, Loader2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -35,8 +37,13 @@ export const PayrollDashboard = () => {
 
   const [wizardStep, setWizardStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Stats & Lists
+  const [stats, setStats] = useState(payrollData);
   const [structuresList, setStructuresList] = useState(initialStructures);
   const [payslipsList, setPayslipsList] = useState(initialPayslips);
+  const [dbEmployeesList, setDbEmployeesList] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Modals state
@@ -45,7 +52,11 @@ export const PayrollDashboard = () => {
 
   // New Item States
   const [newStructure, setNewStructure] = useState({ name: '', band: '$80k - $120k', basic: '50%', hra: '20%' });
-  const [newPayslip, setNewPayslip] = useState({ employeeName: 'Rahul Sharma', month: 'July 2026', netSalary: '$9,000.00' });
+  const [newPayslip, setNewPayslip] = useState({ employeeId: '', month: 7, year: 2026 });
+
+  // View Payslip Modal
+  const [selectedPayslip, setSelectedPayslip] = useState(null);
+  const [isViewPayslipOpen, setIsViewPayslipOpen] = useState(false);
 
   // Map route to active tab
   const getActiveTab = () => {
@@ -62,55 +73,130 @@ export const PayrollDashboard = () => {
     else navigate('/hr/payroll');
   };
 
+  // Fetch Payroll API Data
+  const fetchPayrollData = async () => {
+    setLoading(true);
+    try {
+      const [statsRes, structRes, slipsRes, empRes] = await Promise.allSettled([
+        payrollApi.getDashboardStats(),
+        payrollApi.getSalaryStructures(),
+        payrollApi.getAllPayslips(),
+        employeeApi.getAllEmployees()
+      ]);
+
+      if (statsRes.status === 'fulfilled' && statsRes.value?.data) {
+        setStats((prev) => ({ ...prev, ...statsRes.value.data }));
+      }
+      if (structRes.status === 'fulfilled' && Array.isArray(structRes.value?.data)) {
+        setStructuresList(structRes.value.data);
+      }
+      if (slipsRes.status === 'fulfilled' && Array.isArray(slipsRes.value?.data)) {
+        setPayslipsList(slipsRes.value.data);
+      }
+      if (empRes.status === 'fulfilled' && Array.isArray(empRes.value?.data)) {
+        setDbEmployeesList(empRes.value.data);
+      }
+    } catch (err) {
+      console.error('Failed to load payroll data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPayrollData();
+  }, []);
+
   const payrollTabs = [
     { id: 'processing', label: 'Payroll Processing' },
     { id: 'structures', label: `Salary Structures (${structuresList.length})` },
     { id: 'payslips', label: `Payslips Archive (${payslipsList.length})` }
   ];
 
-  const handleRunWizard = () => {
+  const handleRunWizard = async () => {
     setIsProcessing(true);
-    setTimeout(() => {
+    try {
+      const res = await payrollApi.generateMonthlyPayroll({ month: 7, year: 2026 });
       setIsProcessing(false);
       setWizardStep(4);
-      toast.success('Payroll for July 2026 approved & payslips generated!');
-    }, 1200);
+      toast.success(res?.message || 'Payroll for July 2026 executed & payslips generated!');
+      fetchPayrollData();
+    } catch (err) {
+      console.error('Payroll engine error:', err);
+      setIsProcessing(false);
+      setWizardStep(4);
+      toast.error(err.message || 'Error processing payroll');
+    }
   };
 
-  const handleCreateStructure = (e) => {
+  const handleCreateStructure = async (e) => {
     e.preventDefault();
-    const created = {
-      id: `STR-0${structuresList.length + 1}`,
-      name: newStructure.name,
-      band: newStructure.band,
-      basic: newStructure.basic,
-      hra: newStructure.hra,
-      allowances: '25%',
-      deductions: '10%',
-      membersCount: 0
-    };
-    setStructuresList([...structuresList, created]);
-    toast.success(`Salary structure ${newStructure.name} created!`);
-    setIsAddStructureOpen(false);
-    setNewStructure({ name: '', band: '$80k - $120k', basic: '50%', hra: '20%' });
+    if (!newStructure.name || !newStructure.band) {
+      toast.error('Please complete all structure details');
+      return;
+    }
+    try {
+      const res = await payrollApi.createSalaryStructure(newStructure);
+      if (res?.success || res?.data) {
+        toast.success(`Salary structure "${newStructure.name}" saved to database!`);
+        fetchPayrollData();
+      }
+    } catch (err) {
+      console.error('Error creating structure:', err);
+      toast.error(err.message || 'Failed to create salary structure');
+    } finally {
+      setIsAddStructureOpen(false);
+      setNewStructure({ name: '', band: '$80k - $120k', basic: '50%', hra: '20%', allowances: '25%', deductions: '10%' });
+    }
   };
 
-  const handleGeneratePayslip = (e) => {
+  const handleGeneratePayslip = async (e) => {
     e.preventDefault();
-    const selectedEmp = employeesList.find(e => e.name === newPayslip.employeeName) || employeesList[0];
-    const created = {
-      id: `PAY-${800 + payslipsList.length}`,
-      employeeName: selectedEmp.name,
-      employeeId: selectedEmp.id,
-      month: newPayslip.month,
-      gross: selectedEmp.salary,
-      deductions: '$1,200.00',
-      netSalary: newPayslip.netSalary,
-      status: 'Paid'
-    };
-    setPayslipsList([created, ...payslipsList]);
-    toast.success(`Payslip generated for ${selectedEmp.name}!`);
-    setIsGenPayslipOpen(false);
+    try {
+      const targetEmp = dbEmployeesList.find((emp) => emp._id === newPayslip.employeeId);
+      const res = await payrollApi.generateMonthlyPayroll({
+        month: newPayslip.month || 7,
+        year: newPayslip.year || 2026,
+        employeeId: newPayslip.employeeId || undefined
+      });
+      if (res?.success || res?.data) {
+        toast.success(`Payslip generated for ${targetEmp ? `${targetEmp.firstName} ${targetEmp.lastName}` : 'Active Staff'}!`);
+        fetchPayrollData();
+      }
+    } catch (err) {
+      console.error('Error generating payslip:', err);
+      toast.error(err.message || 'Failed to generate payslip');
+    } finally {
+      setIsGenPayslipOpen(false);
+    }
+  };
+
+  const handleViewPayslip = async (pay) => {
+    try {
+      if (pay._id) {
+        const res = await payrollApi.getPayslipById(pay._id);
+        if (res?.data) {
+          setSelectedPayslip(res.data);
+          setIsViewPayslipOpen(true);
+          return;
+        }
+      }
+      setSelectedPayslip(pay);
+      setIsViewPayslipOpen(true);
+    } catch (err) {
+      setSelectedPayslip(pay);
+      setIsViewPayslipOpen(true);
+    }
+  };
+
+  const handleStatusChange = async (payslipId, newStatus) => {
+    try {
+      await payrollApi.updatePaymentStatus(payslipId, { paymentStatus: newStatus });
+      toast.success(`Payment status updated to ${newStatus}`);
+      fetchPayrollData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update payment status');
+    }
   };
 
   return (
@@ -136,28 +222,35 @@ export const PayrollDashboard = () => {
       {/* Tabs Header */}
       <Tabs tabs={payrollTabs} activeTab={activeTab} onChange={handleTabChange} />
 
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 text-[#534675] animate-spin" />
+          <span className="ml-3 text-sm font-medium text-slate-600">Loading Payroll System...</span>
+        </div>
+      )}
+
       {/* TAB 1: PAYROLL PROCESSING WIZARD */}
-      {activeTab === 'processing' && (
+      {!loading && activeTab === 'processing' && (
         <div className="space-y-6">
           {/* KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <StatCard
               title="Total Payroll Budget"
-              value={payrollData.totalBudget}
+              value={stats.totalBudget || '$485,000.00'}
               description="July 2026 Cycle"
               icon={DollarSign}
               iconBg="bg-[#f2f8e8] text-[#59781b]"
             />
             <StatCard
               title="Employees Processed"
-              value={payrollData.processedCount}
+              value={stats.processedCount || '387/389'}
               description="97% Completed"
               icon={CheckCircle}
               iconBg="bg-[#f0edf7] text-[#534675]"
             />
             <StatCard
               title="Pending Approvals"
-              value={payrollData.pendingCount}
+              value={stats.pendingCount !== undefined ? String(stats.pendingCount) : '2'}
               description="Arrears & Adjustments"
               icon={Calculator}
               iconBg="bg-amber-50 text-amber-600 border border-amber-200"
@@ -190,8 +283,8 @@ export const PayrollDashboard = () => {
             <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
-                  <h4 className="text-base font-bold text-[#2c2738]">Cycle Summary: July 1 - July 31, 2026</h4>
-                  <p className="text-xs text-slate-500 mt-0.5">389 Employees • Gross: $485,000 • Deductions: $42,500 • Net Disbursed: $442,500</p>
+                  <h4 className="text-base font-bold text-[#2c2738]">Cycle Summary: {stats.cycleSummary || 'July 1 - July 31, 2026'}</h4>
+                  <p className="text-xs text-slate-500 mt-0.5">Automated payroll calculation with instant payslip dispatch & tax calculation.</p>
                 </div>
                 <Button
                   onClick={handleRunWizard}
@@ -208,10 +301,10 @@ export const PayrollDashboard = () => {
       )}
 
       {/* TAB 2: SALARY STRUCTURES */}
-      {activeTab === 'structures' && (
+      {!loading && activeTab === 'structures' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {structuresList.map((str) => (
-            <Card key={str.id} className="space-y-4 bg-white border border-slate-200 shadow-xs hover:border-[#534675]/40 transition-all">
+          {structuresList.map((str, idx) => (
+            <Card key={str._id || str.id || idx} className="space-y-4 bg-white border border-slate-200 shadow-xs hover:border-[#534675]/40 transition-all">
               <div className="flex justify-between items-start">
                 <div className="flex items-center gap-3">
                   <div className="p-3 bg-[#f0edf7] text-[#534675] rounded-xl border border-[#dcd6e8]">
@@ -223,7 +316,7 @@ export const PayrollDashboard = () => {
                   </div>
                 </div>
                 <span className="px-2.5 py-1 bg-[#f0edf7] text-[#534675] font-bold rounded-lg border border-[#dcd6e8] text-[11px]">
-                  {str.membersCount} Assigned
+                  {str.membersCount || 0} Assigned
                 </span>
               </div>
 
@@ -251,7 +344,7 @@ export const PayrollDashboard = () => {
       )}
 
       {/* TAB 3: PAYSLIPS ARCHIVE */}
-      {activeTab === 'payslips' && (
+      {!loading && activeTab === 'payslips' && (
         <div className="space-y-4">
           <div className="relative max-w-md">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -276,15 +369,15 @@ export const PayrollDashboard = () => {
                     <th className="px-4 py-3">DEDUCTIONS</th>
                     <th className="px-4 py-3">NET PAY</th>
                     <th className="px-4 py-3">STATUS</th>
-                    <th className="px-4 py-3">ACTION</th>
+                    <th className="px-4 py-3 text-right">ACTION</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {payslipsList
-                    .filter(p => p.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) || p.id.toLowerCase().includes(searchQuery.toLowerCase()))
-                    .map((pay) => (
-                      <tr key={pay.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="px-4 py-3.5 font-mono text-slate-400">{pay.id}</td>
+                    .filter((p) => (p.employeeName || '').toLowerCase().includes(searchQuery.toLowerCase()) || (p.payslipCode || p.id || '').toLowerCase().includes(searchQuery.toLowerCase()))
+                    .map((pay, idx) => (
+                      <tr key={pay._id || pay.id || idx} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="px-4 py-3.5 font-mono text-slate-400">{pay.payslipCode || pay.id}</td>
                         <td className="px-4 py-3.5 font-bold text-[#2c2738]">
                           {pay.employeeName}
                           <span className="block text-[10px] text-slate-400 font-mono">{pay.employeeId}</span>
@@ -294,9 +387,23 @@ export const PayrollDashboard = () => {
                         <td className="px-4 py-3.5 font-semibold text-rose-600">{pay.deductions}</td>
                         <td className="px-4 py-3.5 font-bold text-[#59781b]">{pay.netSalary}</td>
                         <td className="px-4 py-3.5">
-                          <StatusBadge status={pay.status} />
+                          <button
+                            onClick={() => handleStatusChange(pay._id || pay.id, pay.status === 'Paid' ? 'Pending' : 'Paid')}
+                            title="Click to toggle Paid/Pending status"
+                            className="cursor-pointer"
+                          >
+                            <StatusBadge status={pay.status} />
+                          </button>
                         </td>
-                        <td className="px-4 py-3.5">
+                        <td className="px-4 py-3.5 text-right space-x-1">
+                          <Button
+                            onClick={() => handleViewPayslip(pay)}
+                            variant="ghost"
+                            size="sm"
+                            icon={FileText}
+                          >
+                            View
+                          </Button>
                           <Button
                             onClick={() => toast.success(`Downloaded payslip PDF for ${pay.employeeName}`)}
                             variant="ghost"
@@ -333,14 +440,14 @@ export const PayrollDashboard = () => {
             label="Structure Title"
             value={newStructure.name}
             onChange={(e) => setNewStructure({ ...newStructure, name: e.target.value })}
-            placeholder="e.g. Lead Technical Specialist Band"
+            placeholder="e.g. Lead Technical Specialist Band (L6)"
             required
           />
           <Input
-            label="Annual Compensation Band"
+            label="Annual Compensation Band ($)"
             value={newStructure.band}
             onChange={(e) => setNewStructure({ ...newStructure, band: e.target.value })}
-            placeholder="e.g. $100k - $140k"
+            placeholder="e.g. $120k - $160k"
             required
           />
           <div className="grid grid-cols-2 gap-4">
@@ -348,12 +455,28 @@ export const PayrollDashboard = () => {
               label="Basic Pay Allocation (%)"
               value={newStructure.basic}
               onChange={(e) => setNewStructure({ ...newStructure, basic: e.target.value })}
+              placeholder="50%"
               required
             />
             <Input
               label="HRA Component (%)"
               value={newStructure.hra}
               onChange={(e) => setNewStructure({ ...newStructure, hra: e.target.value })}
+              placeholder="20%"
+              required
+            />
+            <Input
+              label="Special Allowances (%)"
+              value={newStructure.allowances}
+              onChange={(e) => setNewStructure({ ...newStructure, allowances: e.target.value })}
+              placeholder="25%"
+              required
+            />
+            <Input
+              label="Tax & Deductions (%)"
+              value={newStructure.deductions}
+              onChange={(e) => setNewStructure({ ...newStructure, deductions: e.target.value })}
+              placeholder="10%"
               required
             />
           </div>
@@ -376,27 +499,88 @@ export const PayrollDashboard = () => {
         <form onSubmit={handleGeneratePayslip} className="space-y-4">
           <Select
             label="Select Employee"
-            value={newPayslip.employeeName}
-            onChange={(e) => setNewPayslip({ ...newPayslip, employeeName: e.target.value })}
-            options={employeesList.map(emp => ({ label: `${emp.name} (${emp.id})`, value: emp.name }))}
+            value={newPayslip.employeeId}
+            onChange={(e) => setNewPayslip({ ...newPayslip, employeeId: e.target.value })}
+            options={[
+              { label: '-- Bulk Process All Active Staff --', value: '' },
+              ...(dbEmployeesList.length > 0
+                ? dbEmployeesList.map((emp) => ({ label: `${emp.firstName} ${emp.lastName} (${emp.employeeCode})`, value: emp._id }))
+                : employeesList.map((emp) => ({ label: `${emp.name} (${emp.id})`, value: emp.id })))
+            ]}
           />
           <Select
             label="Pay Month"
-            value={newPayslip.month}
-            onChange={(e) => setNewPayslip({ ...newPayslip, month: e.target.value })}
+            value={String(newPayslip.month)}
+            onChange={(e) => setNewPayslip({ ...newPayslip, month: Number(e.target.value) })}
             options={[
-              { label: 'July 2026', value: 'July 2026' },
-              { label: 'June 2026', value: 'June 2026' },
-              { label: 'May 2026', value: 'May 2026' }
+              { label: 'July 2026', value: '7' },
+              { label: 'June 2026', value: '6' },
+              { label: 'May 2026', value: '5' }
             ]}
           />
-          <Input
-            label="Calculated Net Disbursement ($)"
-            value={newPayslip.netSalary}
-            onChange={(e) => setNewPayslip({ ...newPayslip, netSalary: e.target.value })}
-            required
-          />
         </form>
+      </Modal>
+
+      {/* MODAL 3: VIEW PAYSLIP VOUCHER */}
+      <Modal
+        isOpen={isViewPayslipOpen}
+        onClose={() => setIsViewPayslipOpen(false)}
+        title="Official Payslip Voucher"
+        subtitle="Verified earnings statement and tax breakdown."
+        footer={
+          <>
+            <Button onClick={() => window.print()} variant="outline" icon={Download}>Print / Download</Button>
+            <Button onClick={() => setIsViewPayslipOpen(false)} variant="primary">Close</Button>
+          </>
+        }
+      >
+        {selectedPayslip && (
+          <div className="space-y-4 p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs">
+            <div className="flex justify-between items-center border-b border-slate-200 pb-3">
+              <div>
+                <h4 className="text-sm font-bold text-[#2c2738]">
+                  {selectedPayslip.employeeId?.firstName
+                    ? `${selectedPayslip.employeeId.firstName} ${selectedPayslip.employeeId.lastName}`
+                    : selectedPayslip.employeeName || 'Employee'}
+                </h4>
+                <p className="text-[10px] text-slate-500 font-mono">
+                  {selectedPayslip.employeeId?.employeeCode || selectedPayslip.employeeId || 'EMP-1001'}
+                </p>
+              </div>
+              <StatusBadge status={selectedPayslip.paymentStatus || selectedPayslip.status || 'Paid'} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <div>
+                <span className="text-[10px] text-slate-400 uppercase font-semibold">Pay Period</span>
+                <p className="font-bold text-[#2c2738]">{selectedPayslip.month || 'July 2026'}</p>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 uppercase font-semibold">Base Salary</span>
+                <p className="font-bold text-[#2c2738]">{selectedPayslip.baseSalary ? `$${selectedPayslip.baseSalary.toLocaleString()}` : selectedPayslip.gross}</p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-white rounded-xl border border-slate-200 space-y-2">
+              <div className="flex justify-between font-medium">
+                <span className="text-slate-600">House Rent Allowance (HRA)</span>
+                <span>{selectedPayslip.allowances?.hra ? `$${selectedPayslip.allowances.hra.toLocaleString()}` : '$1,500.00'}</span>
+              </div>
+              <div className="flex justify-between font-medium">
+                <span className="text-slate-600">Medical & Transport Allowance</span>
+                <span>$3,500.00</span>
+              </div>
+              <div className="flex justify-between font-medium text-rose-600 pt-1 border-t border-slate-100">
+                <span>Tax Withholding & Deductions</span>
+                <span>-{selectedPayslip.deductions?.tax ? `$${(selectedPayslip.deductions.tax + (selectedPayslip.deductions.providentFund || 0)).toLocaleString()}` : selectedPayslip.deductions}</span>
+              </div>
+              <div className="flex justify-between text-sm font-bold text-[#59781b] pt-2 border-t border-slate-200">
+                <span>Net Disbursed Salary</span>
+                <span>{selectedPayslip.netSalary ? (typeof selectedPayslip.netSalary === 'number' ? `$${selectedPayslip.netSalary.toLocaleString()}` : selectedPayslip.netSalary) : '$9,000.00'}</span>
+              </div>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

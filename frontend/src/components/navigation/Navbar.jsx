@@ -1,36 +1,62 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../../store/authStore';
 import { useNotificationStore } from '../../store/notificationStore';
 import { RoleSwitcher } from './RoleSwitcher';
 import { Avatar } from '../ui/Avatar';
-import { Bell, Menu, Search, LogOut, ShieldCheck, UserCheck, CheckCheck } from 'lucide-react';
+import {
+  Bell, Menu, Search, LogOut, ShieldCheck, UserCheck, CheckCheck,
+  Calendar, DollarSign, CheckSquare, HelpCircle, Award, Info
+} from 'lucide-react';
 import { Drawer } from '../ui/Drawer';
 import { useNavigate } from 'react-router-dom';
 
 export const Navbar = ({ onOpenMobileMenu, onToggleSidebar }) => {
   const { user, role, logout } = useAuthStore();
-  const { notifications, markAsRead, markAllAsRead } = useNotificationStore();
+  const { notifications, fetchNotifications, markAsRead, markAllAsRead } = useNotificationStore();
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const navigate = useNavigate();
 
-  const unreadCount = notifications.filter(n => !n.read && (n.role === role || !n.role)).length;
+  useEffect(() => {
+    fetchNotifications();
+  }, [role]);
+
+  const unreadCount = notifications.filter(n => !n.read && (n.role === role || n.role === 'all' || !n.role)).length;
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
+  const handleNotifClick = (ntf) => {
+    markAsRead(ntf.id);
+    if (ntf.link) {
+      setIsNotifOpen(false);
+      navigate(ntf.link);
+    }
+  };
+
+  const getNotifIcon = (type) => {
+    switch (type) {
+      case 'payroll': return <DollarSign className="w-4 h-4 text-emerald-600" />;
+      case 'task': return <CheckSquare className="w-4 h-4 text-[#534675]" />;
+      case 'kudos': return <Award className="w-4 h-4 text-[#e95f87]" />;
+      case 'leave': return <Calendar className="w-4 h-4 text-amber-600" />;
+      case 'ticket': return <HelpCircle className="w-4 h-4 text-purple-600" />;
+      default: return <Info className="w-4 h-4 text-slate-500" />;
+    }
+  };
+
   return (
-    <header className="h-16 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs gap-4">
+    <header className="h-16 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-2.5 sm:px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs gap-2 sm:gap-4">
       {/* Left: Mobile hamburger, Sidebar Toggle & Title / Search */}
-      <div className="flex items-center gap-3 sm:gap-4">
+      <div className="flex items-center gap-1.5 sm:gap-4">
         <button
           onClick={onOpenMobileMenu}
-          className="md:hidden p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors"
+          className="md:hidden p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors"
           aria-label="Open navigation menu"
         >
-          <Menu className="w-6 h-6" />
+          <Menu className="w-5 h-5" />
         </button>
 
         <button
@@ -42,39 +68,16 @@ export const Navbar = ({ onOpenMobileMenu, onToggleSidebar }) => {
         </button>
 
         {/* Brand logo visible on mobile header */}
-        <div className="flex items-center gap-2 md:hidden">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white font-black text-xs ${role === 'hr_admin' ? 'bg-[#534675]' : 'bg-[#9ec64c]'}`}>
+        <div className="flex items-center gap-1.5 md:hidden">
+          <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-white font-black text-[10px] ${role === 'hr_admin' ? 'bg-[#534675]' : 'bg-[#9ec64c]'}`}>
             {role === 'hr_admin' ? 'HR' : 'ESS'}
           </div>
-          <span className="font-bold text-[#2c2738] text-sm">SmartHRM</span>
-        </div>
-
-        {/* Header Breadcrumbs / Title & Search Bar (Desktop) */}
-        <div className="hidden lg:flex items-center gap-3">
-          <span className="font-bold text-[#2c2738] text-sm whitespace-nowrap">HR Dashboard</span>
-          <select className="bg-slate-50 border border-slate-200 text-xs rounded-lg px-2.5 py-1 text-slate-600 focus:outline-none">
-            <option>Year 2026</option>
-            <option>Year 2025</option>
-          </select>
-          <div className="relative w-48 xl:w-64">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search..."
-              className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 py-1 text-xs text-[#2c2738] placeholder-slate-400 focus:outline-none focus:border-[#534675]"
-            />
-          </div>
+          <span className="font-bold text-[#2c2738] text-xs sm:text-sm hidden min-[360px]:inline">SmartHRM</span>
         </div>
       </div>
 
       {/* Middle & Right Header Controls */}
-      <div className="flex items-center gap-3 sm:gap-4">
-        <div className="hidden md:flex items-center gap-3 text-xs text-slate-600">
-          <span className="cursor-pointer hover:text-[#534675]">Language ▾</span>
-          <span className="cursor-pointer hover:text-[#534675]">Reports ▾</span>
-          <span className="cursor-pointer hover:text-[#534675]">Project ▾</span>
-        </div>
-
+      <div className="flex items-center gap-1.5 sm:gap-4">
         {/* Role Switcher for instant live evaluation */}
         <RoleSwitcher />
 
@@ -144,7 +147,7 @@ export const Navbar = ({ onOpenMobileMenu, onToggleSidebar }) => {
       >
         <div className="space-y-3">
           <div className="flex justify-between items-center pb-2 border-b border-slate-200">
-            <span className="text-xs text-slate-500">{unreadCount} unread messages</span>
+            <span className="text-xs text-slate-500 font-semibold">{unreadCount} unread notifications</span>
             <button
               onClick={markAllAsRead}
               className="text-xs text-[#534675] hover:underline flex items-center gap-1 font-semibold"
@@ -154,22 +157,29 @@ export const Navbar = ({ onOpenMobileMenu, onToggleSidebar }) => {
             </button>
           </div>
 
-          {notifications.map((ntf) => (
-            <div
-              key={ntf.id}
-              onClick={() => markAsRead(ntf.id)}
-              className={`p-3.5 rounded-xl border transition-all cursor-pointer ${ntf.read
-                  ? 'bg-slate-50 border-slate-200 text-slate-500'
-                  : 'bg-[#f4f2f9] border-[#534675]/30 text-[#2c2738] shadow-xs'
-                }`}
-            >
-              <div className="flex justify-between items-start mb-1">
-                <h4 className="text-xs font-semibold">{ntf.title}</h4>
-                <span className="text-[10px] text-slate-400">{ntf.time}</span>
+          {notifications
+            .filter(n => n.role === role || n.role === 'all' || !n.role)
+            .map((ntf) => (
+              <div
+                key={ntf.id}
+                onClick={() => handleNotifClick(ntf)}
+                className={`p-3.5 rounded-2xl border transition-all cursor-pointer space-y-1 ${ntf.read
+                    ? 'bg-slate-50 border-slate-200 text-slate-500'
+                    : 'bg-[#f4f2f9] border-[#534675]/40 text-[#2c2738] shadow-xs hover:border-[#534675]'
+                  }`}
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-white rounded-lg border border-slate-200 shadow-2xs">
+                      {getNotifIcon(ntf.type)}
+                    </div>
+                    <h4 className="text-xs font-bold text-[#2c2738]">{ntf.title}</h4>
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-medium">{ntf.time}</span>
+                </div>
+                <p className="text-xs text-slate-600 pl-8">{ntf.message}</p>
               </div>
-              <p className="text-xs text-slate-600">{ntf.message}</p>
-            </div>
-          ))}
+            ))}
         </div>
       </Drawer>
     </header>

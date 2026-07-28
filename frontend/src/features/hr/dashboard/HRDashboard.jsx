@@ -83,7 +83,21 @@ export const HRDashboard = () => {
   const [ancContent, setAncContent] = useState('');
 
   // Dashboard API Stats State
-  const [stats, setStats] = useState(null);
+  const [dashboardData, setDashboardData] = useState({
+    summary: null,
+    salaryStats: salaryStatsData,
+    revenueDonut: revenueDonutData,
+    balanceTrend: balanceTrendData,
+    bankBalances: {
+      totalBalance: '$20,508',
+      bankOfAmerica: '$15,025',
+      rbcBank: '$1,843',
+      frostBank: '$3,641'
+    },
+    employeeStructure: employeeStructureData,
+    performanceTeams: performanceTeams,
+    projectSummary: projectSummaryData
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -91,12 +105,22 @@ export const HRDashboard = () => {
     const fetchDashboardStats = async () => {
       try {
         const res = await dashboardApi.getStats();
-        if (isMounted && res && res.data) {
-          setStats(res.data.summary);
+        const d = res?.data || res;
+        if (isMounted && d) {
+          setDashboardData(prev => ({
+            ...prev,
+            summary: d.summary || prev.summary,
+            salaryStats: d.salaryStats && d.salaryStats.length > 0 ? d.salaryStats : prev.salaryStats,
+            revenueDonut: d.revenueDonut && d.revenueDonut.length > 0 ? d.revenueDonut : prev.revenueDonut,
+            balanceTrend: d.balanceTrend && d.balanceTrend.length > 0 ? d.balanceTrend : prev.balanceTrend,
+            bankBalances: d.bankBalances || prev.bankBalances,
+            employeeStructure: d.employeeStructure && d.employeeStructure.length > 0 ? d.employeeStructure : prev.employeeStructure,
+            performanceTeams: d.performanceTeams && d.performanceTeams.length > 0 ? d.performanceTeams : prev.performanceTeams,
+            projectSummary: d.projectSummary && d.projectSummary.length > 0 ? d.projectSummary : prev.projectSummary
+          }));
         }
       } catch (error) {
-        // Fallback gracefully if backend is offline or unauthorized during dev
-        console.log('Using local store metric fallbacks:', error.message);
+        console.log('Dashboard stats load note:', error.message);
       }
     };
 
@@ -110,7 +134,6 @@ export const HRDashboard = () => {
 
     setIsSubmitting(true);
     try {
-      // API call to backend endpoint
       await dashboardApi.createAnnouncement({
         title: ancTitle,
         category: ancCategory,
@@ -118,14 +141,12 @@ export const HRDashboard = () => {
         priority: 'Normal'
       });
       
-      // Update local store state for immediate reactivity across frontend components
       addAnnouncement({ title: ancTitle, category: ancCategory, content: ancContent, priority: 'Normal' });
       toast.success('Announcement published to company portal!');
       setIsAncModalOpen(false);
       setAncTitle('');
       setAncContent('');
     } catch (err) {
-      // Fallback local operation if API call fails
       addAnnouncement({ title: ancTitle, category: ancCategory, content: ancContent, priority: 'Normal' });
       toast.success('Announcement published locally!');
       setIsAncModalOpen(false);
@@ -137,9 +158,8 @@ export const HRDashboard = () => {
   };
 
   const activeUserTitle = user?.name || user?.email?.split('@')[0] || 'Jason Porter';
-  const totalUsersCount = stats?.totalEmployees ?? employees?.length ?? 5;
-  const pendingLeavesCount = stats?.pendingLeaves ?? 2;
-  const openJobsCount = stats?.openJobs ?? 8;
+  const totalUsersCount = dashboardData.summary?.totalEmployees ?? employees?.length ?? 5;
+  const openJobsCount = dashboardData.summary?.openJobs ?? 8;
 
   return (
     <div className="space-y-6 animate-fade-in pb-8 text-[#2c2738]">
@@ -211,7 +231,7 @@ export const HRDashboard = () => {
 
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={salaryStatsData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+              <BarChart data={dashboardData.salaryStats} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0edf7" />
                 <XAxis dataKey="month" stroke="#8c869e" fontSize={11} tickLine={false} />
                 <YAxis stroke="#8c869e" fontSize={11} tickLine={false} axisLine={false} />
@@ -253,13 +273,13 @@ export const HRDashboard = () => {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={revenueDonutData}
+                  data={dashboardData.revenueDonut}
                   cx="50%"
                   cy="50%"
                   outerRadius={75}
                   dataKey="value"
                 >
-                  {revenueDonutData.map((entry, index) => (
+                  {dashboardData.revenueDonut.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
@@ -270,8 +290,8 @@ export const HRDashboard = () => {
             </ResponsiveContainer>
           </div>
 
-          <div className="flex items-center justify-center gap-3 text-[11px] text-slate-500">
-            {revenueDonutData.map((item, idx) => (
+          <div className="flex items-center justify-center gap-3 text-[11px] text-slate-500 flex-wrap">
+            {dashboardData.revenueDonut.map((item, idx) => (
               <span key={idx} className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
                 {item.name}
@@ -294,12 +314,12 @@ export const HRDashboard = () => {
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">MY BALANCE</h3>
             <p className="text-[11px] text-slate-400">Balance</p>
-            <h4 className="text-2xl font-bold text-[#2c2738] tracking-tight">$20,508</h4>
+            <h4 className="text-2xl font-bold text-[#2c2738] tracking-tight">{dashboardData.bankBalances.totalBalance}</h4>
           </div>
 
           <div className="h-28 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={balanceTrendData} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
+              <AreaChart data={dashboardData.balanceTrend} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="balanceColor" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#38b6ff" stopOpacity={0.4} />
@@ -314,15 +334,15 @@ export const HRDashboard = () => {
           <div className="space-y-2 text-xs pt-1">
             <div className="flex justify-between items-center border-b border-[#534675]/30 pb-1.5">
               <span className="text-slate-600 font-medium">Bank of America</span>
-              <span className="font-bold text-[#2c2738]">$15,025</span>
+              <span className="font-bold text-[#2c2738]">{dashboardData.bankBalances.bankOfAmerica}</span>
             </div>
             <div className="flex justify-between items-center border-b border-[#e95f87] pb-1.5">
               <span className="text-slate-600 font-medium">RBC Bank</span>
-              <span className="font-bold text-[#2c2738]">$1,843</span>
+              <span className="font-bold text-[#2c2738]">{dashboardData.bankBalances.rbcBank}</span>
             </div>
             <div className="flex justify-between items-center border-b border-slate-200 pb-1.5">
               <span className="text-slate-600 font-medium">Frost Bank</span>
-              <span className="font-bold text-[#2c2738]">$3,641</span>
+              <span className="font-bold text-[#2c2738]">{dashboardData.bankBalances.frostBank}</span>
             </div>
           </div>
 
@@ -340,7 +360,7 @@ export const HRDashboard = () => {
 
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={employeeStructureData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+              <BarChart data={dashboardData.employeeStructure} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0edf7" />
                 <XAxis dataKey="month" stroke="#8c869e" fontSize={11} tickLine={false} />
                 <YAxis stroke="#8c869e" fontSize={11} tickLine={false} axisLine={false} />
@@ -371,7 +391,7 @@ export const HRDashboard = () => {
           </div>
 
           <div className="space-y-4 py-2">
-            {performanceTeams.map((item, idx) => (
+            {dashboardData.performanceTeams.map((item, idx) => (
               <div key={idx} className="space-y-1">
                 <div className="flex justify-between items-center text-xs">
                   <span className="font-bold text-[#2c2738]">{item.percent}</span>
@@ -393,14 +413,14 @@ export const HRDashboard = () => {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={revenueDonutData}
+                  data={dashboardData.revenueDonut}
                   cx="50%"
                   cy="50%"
                   innerRadius={65}
                   outerRadius={85}
                   dataKey="value"
                 >
-                  {revenueDonutData.map((entry, index) => (
+                  {dashboardData.revenueDonut.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
@@ -411,8 +431,8 @@ export const HRDashboard = () => {
             </ResponsiveContainer>
           </div>
 
-          <div className="flex items-center justify-center gap-3 text-[11px] text-slate-500">
-            {revenueDonutData.map((item, idx) => (
+          <div className="flex items-center justify-center gap-3 text-[11px] text-slate-500 flex-wrap">
+            {dashboardData.revenueDonut.map((item, idx) => (
               <span key={idx} className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
                 {item.name}
@@ -440,7 +460,7 @@ export const HRDashboard = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {projectSummaryData.map((row, idx) => (
+              {dashboardData.projectSummary.map((row, idx) => (
                 <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
                   <td className="px-4 py-3.5 font-mono text-slate-400">{row.id}</td>
                   <td className="px-4 py-3.5 font-bold text-[#2c2738]">{row.client}</td>

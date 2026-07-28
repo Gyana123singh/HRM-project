@@ -18,6 +18,7 @@ export const MobileDrawer = ({ isOpen, onClose }) => {
     { path: '/hr/attendance', label: 'Attendance & Regularization', icon: Clock },
     { path: '/hr/attendance/leave', label: 'Leave Approvals', icon: Calendar },
     { path: '/hr/payroll', label: 'Payroll Processing', icon: DollarSign },
+    { path: '/hr/lifecycle/onboarding', label: 'Onboarding & Goals', icon: Award },
     { path: '/hr/work/projects', label: 'Projects & Tasks', icon: CheckSquare },
     { path: '/hr/reports', label: 'HR Analytics', icon: BarChart3 },
     { path: '/hr/ai/assistant', label: 'AI HR Assistant', icon: Bot },
@@ -27,19 +28,10 @@ export const MobileDrawer = ({ isOpen, onClose }) => {
 
   const essItems = [
     { path: '/employee/dashboard', label: 'My Dashboard', icon: LayoutDashboard },
-    { path: '/employee/attendance', label: 'Attendance & Regularization', icon: Clock },
-    { path: '/employee/leave', label: 'Leave Requests', icon: Calendar },
-    { path: '/employee/timesheets', label: 'Timesheets Entry', icon: FileCheck },
     { path: '/employee/tasks', label: 'Projects & Tasks', icon: Target },
     { path: '/employee/payslips', label: 'Payslips & Salary', icon: DollarSign },
-    { path: '/employee/expenses', label: 'Expense Claims', icon: Folder },
-    { path: '/employee/goals', label: 'My Goals & OKRs', icon: Target },
-    { path: '/employee/training', label: 'Training Courses', icon: BookOpen },
-    { path: '/employee/documents', label: 'Documents & Policies', icon: Folder },
-    { path: '/employee/assets', label: 'Assigned Assets', icon: Laptop },
+    { path: '/employee/goals', label: 'My Goals & OKRs', icon: Award },
     { path: '/employee/helpdesk', label: 'HR Help Desk', icon: HelpCircle },
-    { path: '/employee/directory', label: 'Employee Directory', icon: Users },
-    { path: '/employee/announcements', label: 'Announcements', icon: Megaphone },
     { path: '/employee/profile', label: 'My Profile', icon: User }
   ];
 

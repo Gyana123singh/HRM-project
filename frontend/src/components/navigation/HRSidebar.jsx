@@ -70,6 +70,17 @@ export const HRSidebar = ({ collapsed, onToggle }) => {
       ]
     },
     {
+      key: 'lifecycle',
+      label: 'EMPLOYEE LIFECYCLE',
+      icon: Award,
+      items: [
+        { path: '/hr/lifecycle/onboarding', label: 'Onboarding' },
+        { path: '/hr/lifecycle/performance', label: 'Performance Reviews' },
+        { path: '/hr/lifecycle/goals', label: 'Goals & OKRs' },
+        { path: '/hr/lifecycle/recognition', label: 'Kudos & Recognition' }
+      ]
+    },
+    {
       key: 'work',
       label: 'WORK MANAGEMENT',
       icon: CheckSquare,

@@ -6,3 +6,8 @@ export { default as leaveApi } from './leaveApi';
 export { default as payrollApi } from './payrollApi';
 export { default as recruitmentApi } from './recruitmentApi';
 export { default as dashboardApi } from './dashboardApi';
+export { organizationApi } from './organizationApi';
+export { lifecycleApi } from './lifecycleApi';
+export { ticketApi } from './ticketApi';
+export { taskApi } from './taskApi';
+export { notificationApi } from './notificationApi';

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
@@ -7,13 +7,25 @@ import { ShieldCheck, UserCheck, Lock, Mail, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export const Login = () => {
-  const [email, setEmail] = useState('hr@hrm.com');
-  const [password, setPassword] = useState('HrPass123!');
-  const [selectedRole, setSelectedRole] = useState('hr_admin');
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const queryParams = new URLSearchParams(location.search);
+  const initialRole = queryParams.get('role') || location.state?.targetRole || 'hr_admin';
+
+  const [selectedRole, setSelectedRole] = useState(initialRole);
+  const [email, setEmail] = useState(initialRole === 'employee' ? 'employee@hrm.com' : 'hr@hrm.com');
+  const [password, setPassword] = useState(initialRole === 'employee' ? 'EmpPass123!' : 'HrPass123!');
   const [isLoading, setIsLoading] = useState(false);
 
   const { login } = useAuthStore();
-  const navigate = useNavigate();
+
+  useEffect(() => {
+    const roleParam = queryParams.get('role') || location.state?.targetRole;
+    if (roleParam === 'employee' || roleParam === 'hr_admin') {
+      handleQuickPreset(roleParam);
+    }
+  }, [location.search, location.state]);
 
   const handleLogin = async (e) => {
     e.preventDefault();

@@ -1,6 +1,7 @@
 const express = require('express');
 const {
   getAdminDashboardStats,
+  getEmployeeDashboardStats,
   getAnnouncements,
   createAnnouncement
 } = require('../controllers/dashboardController');
@@ -12,6 +13,7 @@ const router = express.Router();
 router.use(protect); // All dashboard routes require authentication
 
 router.get('/stats', authorize('Admin', 'HR', 'Manager'), getAdminDashboardStats);
+router.get('/employee-stats', getEmployeeDashboardStats);
 
 router.route('/announcements')
   .get(getAnnouncements)

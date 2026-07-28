@@ -22,7 +22,7 @@ const protect = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'User account no longer exists.' });
     }
 
-    if (!user.isActive) {
+    if (user.isActive === false) {
       return res.status(403).json({ success: false, message: 'Your user account is deactivated.' });
     }
 

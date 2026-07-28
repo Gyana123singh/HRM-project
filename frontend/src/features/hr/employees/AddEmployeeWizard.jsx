@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageHeader } from '../../../components/common/PageHeader';
 import { Card } from '../../../components/ui/Card';
 import { Input, Select } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
 import { useHRStore } from '../../../store/hrStore';
-import { employeeApi, authApi } from '../../../api';
+import { employeeApi, authApi, organizationApi } from '../../../api';
 import { useNavigate } from 'react-router-dom';
 import { Check, ArrowRight, ArrowLeft, Save, Upload, FileText, ExternalLink, X, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -14,6 +14,8 @@ export const AddEmployeeWizard = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedDocuments, setUploadedDocuments] = useState([]);
+  const [deptOptions, setDeptOptions] = useState([]);
+  const [branchOptions, setBranchOptions] = useState([]);
   const { addEmployee: addStoreEmp } = useHRStore();
   const navigate = useNavigate();
 
@@ -24,15 +26,40 @@ export const AddEmployeeWizard = () => {
     phone: '',
     dob: '',
     gender: 'Male',
-    department: 'Engineering',
-    designation: 'Frontend Developer',
-    branch: 'Headquarters',
-    joinDate: '2026-08-01',
-    employmentType: 'Full-Time',
-    basicSalary: '$95,000',
+    department: 'Human Resources',
+    designation: 'Software Engineer',
+    branch: 'Global Headquarters',
+    joinDate: new Date().toISOString().split('T')[0],
+    employmentType: 'Full-time',
+    basicSalary: '85000',
+    role: 'Employee',
     bankName: 'Chase Bank',
     accountNumber: '8849-201-4421'
   });
+
+  useEffect(() => {
+    const loadOrgOptions = async () => {
+      try {
+        const [deptRes, branchRes] = await Promise.allSettled([
+          organizationApi.getDepartments(),
+          organizationApi.getBranches()
+        ]);
+        if (deptRes.status === 'fulfilled' && deptRes.value?.data) {
+          const depts = deptRes.value.data;
+          setDeptOptions(depts);
+          if (depts.length > 0) {
+            setFormData((prev) => ({ ...prev, department: depts[0].name || depts[0]._id }));
+          }
+        }
+        if (branchRes.status === 'fulfilled' && branchRes.value?.data) {
+          setBranchOptions(branchRes.value.data);
+        }
+      } catch (err) {
+        console.log('Error fetching org metadata:', err);
+      }
+    };
+    loadOrgOptions();
+  }, []);
 
   const handleNext = () => setStep((s) => Math.min(s + 1, 5));
   const handlePrev = () => setStep((s) => Math.max(s - 1, 1));
@@ -42,18 +69,6 @@ export const AddEmployeeWizard = () => {
     if (!files.length) return;
 
     setIsUploading(true);
-
-    // Auto-ensure token is active
-    if (!localStorage.getItem('token')) {
-      try {
-        const authRes = await authApi.login({ email: 'hr@hrm.com', password: 'HrPass123!' });
-        if (authRes?.token) {
-          localStorage.setItem('token', authRes.token);
-        }
-      } catch (err) {
-        // ignore
-      }
-    }
 
     for (const file of files) {
       const fileFormData = new FormData();
@@ -68,11 +83,9 @@ export const AddEmployeeWizard = () => {
             publicId: res.data.publicId
           };
           setUploadedDocuments((prev) => [...prev, newDoc]);
-          toast.success(`Uploaded ${file.name} to Cloudinary!`);
+          toast.success(`Uploaded ${file.name}`);
         }
       } catch (err) {
-        console.log('Upload error:', err.message);
-        // Fallback local document preview if backend endpoint is unavailable
         const localDoc = {
           name: file.name,
           url: URL.createObjectURL(file),
@@ -101,31 +114,39 @@ export const AddEmployeeWizard = () => {
 
     setIsSubmitting(true);
     const empCode = `EMP-${Math.floor(100 + Math.random() * 900)}`;
+    const numericSalary = parseFloat(String(formData.basicSalary).replace(/[^0-9.]/g, '')) || 75000;
+
+    const payload = {
+      employeeCode: empCode,
+      firstName: formData.firstName.trim(),
+      lastName: formData.lastName.trim(),
+      email: formData.email.trim(),
+      phone: formData.phone.trim(),
+      dateOfBirth: formData.dob ? new Date(formData.dob) : undefined,
+      gender: formData.gender || 'Prefer Not to Say',
+      department: formData.department,
+      designation: formData.designation.trim() || 'Staff Member',
+      joiningDate: formData.joinDate ? new Date(formData.joinDate) : new Date(),
+      employmentType: formData.employmentType || 'Full-time',
+      status: 'Active',
+      role: formData.role || 'Employee',
+      salary: {
+        basic: numericSalary,
+        allowances: {
+          hra: Math.round(numericSalary * 0.2),
+          medical: 2000,
+          transport: 1500
+        },
+        deductions: 0
+      },
+      avatar: uploadedDocuments[0]?.url || '',
+      documents: uploadedDocuments
+    };
 
     try {
-      if (!localStorage.getItem('token')) {
-        const authRes = await authApi.login({ email: 'hr@hrm.com', password: 'HrPass123!' });
-        if (authRes?.token) {
-          localStorage.setItem('token', authRes.token);
-        }
-      }
+      const res = await employeeApi.createEmployee(payload);
+      const createdData = res?.data || payload;
 
-      const payload = {
-        employeeCode: empCode,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phone: formData.phone,
-        gender: formData.gender || 'Other',
-        designation: formData.designation || 'Staff Member',
-        joiningDate: formData.joinDate ? new Date(formData.joinDate) : new Date(),
-        employmentType: formData.employmentType === 'Full-Time' ? 'Full-time' : 'Full-time',
-        status: 'Active',
-        avatar: uploadedDocuments[0]?.url || '',
-        documents: uploadedDocuments
-      };
-
-      await employeeApi.createEmployee(payload);
       addStoreEmp({
         name: `${formData.firstName} ${formData.lastName}`,
         email: formData.email,
@@ -135,25 +156,18 @@ export const AddEmployeeWizard = () => {
         branch: formData.branch,
         joinDate: formData.joinDate,
         employmentType: formData.employmentType,
-        salary: formData.basicSalary
+        salary: `$${numericSalary.toLocaleString()}`
       });
 
       toast.success(`Employee ${formData.firstName} ${formData.lastName} (${empCode}) created successfully!`);
       navigate('/hr/employees');
     } catch (err) {
-      const created = addStoreEmp({
-        name: `${formData.firstName} ${formData.lastName}`,
-        email: formData.email,
-        phone: formData.phone,
-        department: formData.department,
-        designation: formData.designation,
-        branch: formData.branch,
-        joinDate: formData.joinDate,
-        employmentType: formData.employmentType,
-        salary: formData.basicSalary
-      });
-      toast.success(`Employee ${created.name} (${created.id}) created!`);
-      navigate('/hr/employees');
+      const errorMsg = err.response?.data?.message || err.message;
+      if (err.response?.status === 403) {
+        toast.error(`Forbidden: Log in as Admin/HR account (admin@hrm.com) to create employees.`);
+      } else {
+        toast.error(`API Error: ${errorMsg}`);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -251,19 +265,23 @@ export const AddEmployeeWizard = () => {
           {step === 2 && (
             <div className="space-y-4 animate-fade-in">
               <h3 className="text-base font-bold text-[#2c2738] border-b border-slate-100 pb-2">
-                Step 2: Employment Details
+                Step 2: Employment & Role Details
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Select
                   label="Department"
                   value={formData.department}
                   onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  options={[
-                    { label: 'Engineering', value: 'Engineering' },
-                    { label: 'Human Resources', value: 'Human Resources' },
-                    { label: 'Product & Design', value: 'Product & Design' },
-                    { label: 'Sales & Marketing', value: 'Sales & Marketing' }
-                  ]}
+                  options={
+                    deptOptions.length > 0
+                      ? deptOptions.map((d) => ({ label: d.name, value: d.name }))
+                      : [
+                          { label: 'Human Resources', value: 'Human Resources' },
+                          { label: 'Engineering', value: 'Engineering' },
+                          { label: 'Product & Design', value: 'Product & Design' },
+                          { label: 'Sales & Marketing', value: 'Sales & Marketing' }
+                        ]
+                  }
                 />
                 <Input
                   label="Designation Title"
@@ -274,10 +292,25 @@ export const AddEmployeeWizard = () => {
                   label="Branch Office"
                   value={formData.branch}
                   onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
+                  options={
+                    branchOptions.length > 0
+                      ? branchOptions.map((b) => ({ label: `${b.name} (${b.location})`, value: b.name }))
+                      : [
+                          { label: 'Global Headquarters', value: 'Global Headquarters' },
+                          { label: 'Austin Innovation Hub', value: 'Austin Innovation Hub' },
+                          { label: 'EMEA Technology Center', value: 'EMEA Technology Center' }
+                        ]
+                  }
+                />
+                <Select
+                  label="System User Access Role"
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                   options={[
-                    { label: 'Headquarters (New York)', value: 'Headquarters' },
-                    { label: 'Silicon Valley Hub', value: 'Silicon Valley Hub' },
-                    { label: 'European Ops (London)', value: 'European Ops' }
+                    { label: 'Employee (Standard)', value: 'Employee' },
+                    { label: 'Manager (Team Leader)', value: 'Manager' },
+                    { label: 'HR (Human Resources)', value: 'HR' },
+                    { label: 'Admin (System Administrator)', value: 'Admin' }
                   ]}
                 />
                 <Input
@@ -285,6 +318,17 @@ export const AddEmployeeWizard = () => {
                   type="date"
                   value={formData.joinDate}
                   onChange={(e) => setFormData({ ...formData, joinDate: e.target.value })}
+                />
+                <Select
+                  label="Employment Type"
+                  value={formData.employmentType}
+                  onChange={(e) => setFormData({ ...formData, employmentType: e.target.value })}
+                  options={[
+                    { label: 'Full-time', value: 'Full-time' },
+                    { label: 'Part-time', value: 'Part-time' },
+                    { label: 'Contract', value: 'Contract' },
+                    { label: 'Intern', value: 'Intern' }
+                  ]}
                 />
               </div>
             </div>

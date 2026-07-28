@@ -1,6 +1,21 @@
 import axiosClient from './axiosClient';
 
 export const payrollApi = {
+  // Get Payroll Dashboard KPI Statistics
+  getDashboardStats: async () => {
+    return await axiosClient.get('/payroll/stats');
+  },
+
+  // Get Salary Structures
+  getSalaryStructures: async () => {
+    return await axiosClient.get('/payroll/structures');
+  },
+
+  // Create Salary Structure
+  createSalaryStructure: async (structureData) => {
+    return await axiosClient.post('/payroll/structures', structureData);
+  },
+
   // Bulk generate monthly payroll
   generateMonthlyPayroll: async (payrollData) => {
     return await axiosClient.post('/payroll/generate', payrollData);
