@@ -54,22 +54,29 @@ const seedData = async () => {
 
     console.log('[Seeder] Seeding Company Organization Profile...');
     await Organization.create({
-      name: 'Epic Corporation Inc.',
-      taxId: 'TAX-99882211-US',
-      email: 'hr@epiccorp.com',
-      phone: '+1 (555) 234-5678',
-      website: 'https://epiccorp.global',
-      currency: 'USD ($)',
-      address: '100 Innovation Boulevard, Tech Park Tower A, Suite 500, San Francisco, CA',
+      name: 'INFOTATTVA BUSINESS SOLUTIONS (OPC) PRIVATE LIMITED',
+      taxId: 'CIN: U62099OD2026OPC052146',
+      email: 'contact@infotattvabusinesssolutions.com',
+      phone: '+91 (674) 258-9900',
+      website: 'www.infotattvabusinesssolutions.com',
+      currency: 'INR (₹)',
+      address: '1010, 4th Floor, Sabarsahi Lane, Rasulgarh, Bhubaneswar - 751010',
       logo: 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=300&auto=format&fit=crop&q=80',
       fiscalYear: '2026-2027'
     });
 
+    console.log('[Seeder] Seeding Salary Structures...');
+    await SalaryStructure.create([
+      { structureId: 'STR-01', name: 'Executive Level (L7)', band: '₹18,00,000 - ₹30,00,000 / Annum', basic: '50%', hra: '20%', conveyance: '10%', specialAllowance: '10%', bonus: '5%', otherEarnings: '5%', deductions: '10%', membersCount: 5, status: 'Active' },
+      { structureId: 'STR-02', name: 'Senior Engineering (L5)', band: '₹12,00,000 - ₹18,00,000 / Annum', basic: '50%', hra: '20%', conveyance: '10%', specialAllowance: '10%', bonus: '5%', otherEarnings: '5%', deductions: '10%', membersCount: 18, status: 'Active' },
+      { structureId: 'STR-03', name: 'Mid-Level Professional (L4)', band: '₹6,00,000 - ₹12,00,000 / Annum', basic: '50%', hra: '20%', conveyance: '10%', specialAllowance: '10%', bonus: '5%', otherEarnings: '5%', deductions: '10%', membersCount: 42, status: 'Active' },
+      { structureId: 'STR-04', name: 'Associate Band (L2-L3)', band: '₹3,50,000 - ₹6,00,000 / Annum', basic: '50%', hra: '20%', conveyance: '10%', specialAllowance: '10%', bonus: '5%', otherEarnings: '5%', deductions: '10%', membersCount: 25, status: 'Active' }
+    ]);
+
     console.log('[Seeder] Seeding Branch Offices...');
     await Branch.create([
-      { branchId: 'BR-01', name: 'Global Headquarters', location: 'San Francisco, CA, USA', head: 'Sarah Jenkins', employeeCount: 140, status: 'Active' },
-      { branchId: 'BR-02', name: 'Austin Innovation Hub', location: 'Austin, TX, USA', head: 'Alex Vance', employeeCount: 85, status: 'Active' },
-      { branchId: 'BR-03', name: 'EMEA Technology Center', location: 'London, UK', head: 'Claire Dupont', employeeCount: 62, status: 'Active' }
+      { branchId: 'BR-01', name: 'Bhubaneswar HQ', location: 'Rasulgarh, Bhubaneswar, Odisha', head: 'J. P. Tripathy', employeeCount: 140, status: 'Active' },
+      { branchId: 'BR-02', name: 'Bengaluru Tech Hub', location: 'Koramangala, Bengaluru, KA', head: 'Sarah Jenkins', employeeCount: 85, status: 'Active' }
     ]);
 
     console.log('[Seeder] Seeding Departments...');
@@ -91,49 +98,33 @@ const seedData = async () => {
       status: 'Active'
     });
 
-    console.log('[Seeder] Seeding Onboarding Trackers...');
-    await Onboarding.create([
-      { onboardingId: 'ONB-01', employee: 'Rahul Sharma', mentor: 'Sarah Jenkins', progress: 85, completed: 7, total: 8, status: 'In Progress' },
-      { onboardingId: 'ONB-02', employee: 'Jessica Lin', mentor: 'Alex Vance', progress: 100, completed: 8, total: 8, status: 'Completed' },
-      { onboardingId: 'ONB-03', employee: 'Michael Chang', mentor: 'Marcus Vance', progress: 40, completed: 3, total: 8, status: 'In Progress' }
-    ]);
-
-    console.log('[Seeder] Seeding Performance Appraisal Reviews...');
-    await PerformanceReview.create([
-      { reviewId: 'REV-01', employee: 'Rahul Sharma', reviewer: 'Alex Vance (VP Eng)', period: 'Q2 2026 Appraisal', rating: '4.8 / 5.0', status: 'Completed', remarks: 'Outstanding delivery on frontend design system and performance.' },
-      { reviewId: 'REV-02', employee: 'Sarah Jenkins', reviewer: 'Executive Board', period: 'Annual Leadership 2026', rating: '4.9 / 5.0', status: 'Completed', remarks: 'Superb talent retention and organizational culture scaling.' },
-      { reviewId: 'REV-03', employee: 'Michael Chang', reviewer: 'Alex Vance (VP Eng)', period: 'Probation Confirmation', rating: '4.5 / 5.0', status: 'Pending', remarks: 'Strong DevOps technical skills, finalizing 6-month review.' }
-    ]);
-
-    console.log('[Seeder] Seeding Goals & OKRs...');
-    await Goal.create([
-      { goalId: 'G-101', title: 'Achieve 99.99% Cloud Service Availability & Uptime', owner: 'Alex Vance', target: '99.99%', progress: 92, weight: '35%', deadline: '2026-09-30', status: 'In Progress' },
-      { goalId: 'G-102', title: 'Complete Migration to React Tailwind Design System', owner: 'Rahul Sharma', target: '100%', progress: 85, weight: '30%', deadline: '2026-08-15', status: 'In Progress' },
-      { goalId: 'G-103', title: 'Reduce Average Employee Onboarding Time to 3 Days', owner: 'Sarah Jenkins', target: '3 Days', progress: 100, weight: '25%', deadline: '2026-06-30', status: 'Completed' }
-    ]);
-
-    console.log('[Seeder] Seeding Kudos & Recognition...');
-    await Kudos.create([
-      { kudosId: 'KUD-01', recipient: 'Rahul Sharma', sender: 'Sarah Jenkins', badge: 'Innovation Star Award', points: '+500 Pts', message: 'Exceptional work re-architecting the enterprise HRM design system!', time: '2 hours ago' },
-      { kudosId: 'KUD-02', recipient: 'Sophia Martinez', sender: 'Elena Rostova', badge: 'Team Player Badge', points: '+250 Pts', message: 'Fantastic UX research insights that shaped our Q3 product roadmap.', time: '1 day ago' },
-      { kudosId: 'KUD-03', recipient: 'Michael Chang', sender: 'Alex Vance', badge: 'Customer Champion', points: '+300 Pts', message: 'Resolved high-priority production infrastructure emergency in record time!', time: '2 days ago' }
-    ]);
-
     console.log('[Seeder] Creating Employees and Users...');
 
     // 1. Admin Account
     const adminEmp = await Employee.create({
-      employeeCode: 'EMP-001',
-      firstName: 'System',
-      lastName: 'Administrator',
+      employeeCode: 'EMP-0001',
+      firstName: 'Rahul',
+      lastName: 'Sharma',
       email: process.env.ADMIN_EMAIL || 'admin@hrm.com',
-      phone: '+1 (555) 019-2831',
-      department: hrDept._id,
-      designation: 'System Administrator',
-      joiningDate: new Date('2024-01-15'),
+      phone: '+91 98765 43210',
+      department: engDept._id,
+      designation: 'Senior Software Engineer',
+      joiningDate: new Date('2023-06-12'),
       employmentType: 'Full-time',
       status: 'Active',
-      salary: { basic: 90000, allowances: { hra: 18000, medical: 3000, transport: 2000 } }
+      panNumber: 'ABCDE1234F',
+      workLocation: 'Bhubaneswar',
+      bankName: 'HDFC Bank',
+      accountNumber: '5010049281723',
+      salary: {
+        basic: 35000,
+        hra: 14000,
+        conveyance: 3000,
+        specialAllowance: 5000,
+        bonus: 2000,
+        otherEarnings: 1000,
+        deductions: 4000
+      }
     });
 
     const adminUser = await User.create({
@@ -149,17 +140,29 @@ const seedData = async () => {
 
     // 2. HR Manager Account
     const hrEmp = await Employee.create({
-      employeeCode: 'EMP-002',
+      employeeCode: 'EMP-0002',
       firstName: 'Sarah',
       lastName: 'Jenkins',
       email: process.env.HR_EMAIL || 'hr@hrm.com',
-      phone: '+1 (555) 012-3456',
+      phone: '+91 98765 12345',
       department: hrDept._id,
-      designation: 'HR Manager',
+      designation: 'HR Operations Manager',
       joiningDate: new Date('2024-03-01'),
       employmentType: 'Full-time',
       status: 'Active',
-      salary: { basic: 75000, allowances: { hra: 15000, medical: 2500, transport: 2000 } }
+      panNumber: 'FGHIJ5678K',
+      workLocation: 'Bhubaneswar',
+      bankName: 'ICICI Bank',
+      accountNumber: '629101928374',
+      salary: {
+        basic: 40000,
+        hra: 16000,
+        conveyance: 3500,
+        specialAllowance: 6000,
+        bonus: 2500,
+        otherEarnings: 1500,
+        deductions: 4500
+      }
     });
 
     const hrUser = await User.create({
@@ -173,24 +176,32 @@ const seedData = async () => {
     hrEmp.userId = hrUser._id;
     await hrEmp.save();
 
-    // Link HR manager to Department
-    hrDept.manager = hrEmp._id;
-    await hrDept.save();
-
     // 3. Regular Employee Account
     const devEmp = await Employee.create({
-      employeeCode: 'EMP-003',
+      employeeCode: 'EMP-0003',
       firstName: 'Alex',
-      lastName: 'Morgan',
+      lastName: 'Vance',
       email: process.env.EMPLOYEE_EMAIL || 'employee@hrm.com',
-      phone: '+1 (555) 018-9922',
+      phone: '+91 98765 67890',
       department: engDept._id,
-      designation: 'Senior Frontend Developer',
+      designation: 'Backend Tech Lead',
       joiningDate: new Date('2024-06-10'),
       employmentType: 'Full-time',
       status: 'Active',
       managerId: hrEmp._id,
-      salary: { basic: 65000, allowances: { hra: 13000, medical: 2000, transport: 1500 } }
+      panNumber: 'KLMNO9012P',
+      workLocation: 'Remote',
+      bankName: 'State Bank of India',
+      accountNumber: '38192019283',
+      salary: {
+        basic: 45000,
+        hra: 18000,
+        conveyance: 4000,
+        specialAllowance: 7000,
+        bonus: 3000,
+        otherEarnings: 2000,
+        deductions: 5000
+      }
     });
 
     const devUser = await User.create({
@@ -203,6 +214,62 @@ const seedData = async () => {
 
     devEmp.userId = devUser._id;
     await devEmp.save();
+
+    console.log('[Seeder] Seeding Payroll Slips...');
+    await Payroll.create([
+      {
+        employeeId: adminEmp._id,
+        month: 7,
+        year: 2026,
+        payDate: new Date('2026-07-28'),
+        panNumber: 'ABCDE1234F',
+        workLocation: 'Bhubaneswar',
+        bankName: 'HDFC Bank',
+        accountNumber: '5010049281723',
+        totalWorkingDays: 30,
+        paidDays: 30,
+        lopDays: 0,
+        basic: 35000,
+        hra: 14000,
+        conveyance: 3000,
+        specialAllowance: 5000,
+        bonus: 2000,
+        otherEarnings: 1000,
+        grossSalary: 60000,
+        deductions: { tax: 3000, providentFund: 4200, other: 1000, totalDeductions: 8200 },
+        netSalary: 51800,
+        amountInWords: 'Indian Rupees Fifty One Thousand Eight Hundred Only',
+        paymentMode: 'Bank Transfer',
+        transactionRef: 'TXN-982710492',
+        paymentStatus: 'Paid'
+      },
+      {
+        employeeId: hrEmp._id,
+        month: 7,
+        year: 2026,
+        payDate: new Date('2026-07-28'),
+        panNumber: 'FGHIJ5678K',
+        workLocation: 'Bhubaneswar',
+        bankName: 'ICICI Bank',
+        accountNumber: '629101928374',
+        totalWorkingDays: 30,
+        paidDays: 30,
+        lopDays: 0,
+        basic: 40000,
+        hra: 16000,
+        conveyance: 3500,
+        specialAllowance: 6000,
+        bonus: 2500,
+        otherEarnings: 1500,
+        grossSalary: 69500,
+        deductions: { tax: 3475, providentFund: 4800, other: 1225, totalDeductions: 9500 },
+        netSalary: 60000,
+        amountInWords: 'Indian Rupees Sixty Thousand Only',
+        paymentMode: 'Bank Transfer',
+        transactionRef: 'TXN-982710493',
+        paymentStatus: 'Paid'
+      }
+    ]);
 
     console.log('----------------------------------------------------');
     console.log('✅ DATABASE SEEDING COMPLETED SUCCESSFULLY!');

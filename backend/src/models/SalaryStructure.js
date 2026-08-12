@@ -13,7 +13,7 @@ const salaryStructureSchema = new mongoose.Schema({
   band: {
     type: String,
     required: [true, 'Compensation band is required'],
-    default: '$80k - $120k'
+    default: '₹6,00,000 - ₹12,00,000 / Annum'
   },
   basic: {
     type: String,
@@ -23,9 +23,21 @@ const salaryStructureSchema = new mongoose.Schema({
     type: String,
     default: '20%'
   },
-  allowances: {
+  conveyance: {
     type: String,
-    default: '25%'
+    default: '10%'
+  },
+  specialAllowance: {
+    type: String,
+    default: '10%'
+  },
+  bonus: {
+    type: String,
+    default: '5%'
+  },
+  otherEarnings: {
+    type: String,
+    default: '5%'
   },
   deductions: {
     type: String,
@@ -43,3 +55,4 @@ const salaryStructureSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 module.exports = mongoose.model('SalaryStructure', salaryStructureSchema);
+

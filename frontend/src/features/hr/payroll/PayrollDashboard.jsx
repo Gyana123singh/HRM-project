@@ -10,6 +10,8 @@ import { StatusBadge } from '../../../components/common/StatusBadge';
 import { payrollData, employeesList } from '../../../data/mockData';
 import { payrollApi } from '../../../api/payrollApi';
 import { employeeApi } from '../../../api/employeeApi';
+import { InfotattvaPayslipTemplate } from './InfotattvaPayslipTemplate';
+import { downloadPayslipPdf } from '../../../utils/pdfDownload';
 import {
   DollarSign, CheckCircle, Calculator, FileText, Download, Play, Plus,
   Search, ShieldCheck, Briefcase, CreditCard, ArrowUpRight, Loader2
@@ -17,18 +19,15 @@ import {
 import toast from 'react-hot-toast';
 
 const initialStructures = [
-  { id: 'STR-01', name: 'Executive Level (L7)', basic: '60%', hra: '25%', allowances: '15%', deductions: '10%', membersCount: 12, band: '$150k - $250k' },
-  { id: 'STR-02', name: 'Senior Engineering (L5)', basic: '55%', hra: '20%', allowances: '25%', deductions: '12%', membersCount: 45, band: '$110k - $150k' },
-  { id: 'STR-03', name: 'Mid-Level Professional (L4)', basic: '50%', hra: '20%', allowances: '30%', deductions: '10%', membersCount: 120, band: '$85k - $110k' },
-  { id: 'STR-04', name: 'Associate Band (L2-L3)', basic: '50%', hra: '15%', allowances: '35%', deductions: '8%', membersCount: 180, band: '$50k - $85k' }
+  { id: 'STR-01', name: 'Executive Level (L7)', basic: '50%', hra: '20%', conveyance: '10%', specialAllowance: '10%', bonus: '5%', otherEarnings: '5%', membersCount: 12, band: '₹18,00,000 - ₹30,00,000 / Annum' },
+  { id: 'STR-02', name: 'Senior Engineering (L5)', basic: '50%', hra: '20%', conveyance: '10%', specialAllowance: '10%', bonus: '5%', otherEarnings: '5%', membersCount: 45, band: '₹12,00,000 - ₹18,00,000 / Annum' },
+  { id: 'STR-03', name: 'Mid-Level Professional (L4)', basic: '50%', hra: '20%', conveyance: '10%', specialAllowance: '10%', bonus: '5%', otherEarnings: '5%', membersCount: 120, band: '₹6,00,000 - ₹12,00,000 / Annum' },
+  { id: 'STR-04', name: 'Associate Band (L2-L3)', basic: '50%', hra: '20%', conveyance: '10%', specialAllowance: '10%', bonus: '5%', otherEarnings: '5%', membersCount: 180, band: '₹3,50,000 - ₹6,00,000 / Annum' }
 ];
 
 const initialPayslips = [
-  { id: 'PAY-701', employeeName: 'Rahul Sharma', employeeId: 'EMP-1024', month: 'July 2026', gross: '$10,250.00', deductions: '$1,250.00', netSalary: '$9,000.00', status: 'Paid' },
-  { id: 'PAY-702', employeeName: 'Sarah Jenkins', employeeId: 'EMP-1001', month: 'July 2026', gross: '$14,500.00', deductions: '$1,800.00', netSalary: '$12,700.00', status: 'Paid' },
-  { id: 'PAY-703', employeeName: 'Alex Vance', employeeId: 'EMP-1002', month: 'July 2026', gross: '$16,200.00', deductions: '$2,100.00', netSalary: '$14,100.00', status: 'Paid' },
-  { id: 'PAY-704', employeeName: 'Jessica Lin', employeeId: 'EMP-1003', month: 'July 2026', gross: '$12,000.00', deductions: '$1,500.00', netSalary: '$10,500.00', status: 'Pending' },
-  { id: 'PAY-705', employeeName: 'Michael Chang', employeeId: 'EMP-1005', month: 'July 2026', gross: '$11,000.00', deductions: '$1,300.00', netSalary: '$9,700.00', status: 'Paid' }
+  { id: 'PAY-701', payslipCode: 'PAY-701', employeeName: 'Rahul Sharma', employeeId: 'EMP-0001', month: 'July 2026', designation: 'Senior Software Engineer', department: 'Engineering', joiningDate: '12/06/2023', workLocation: 'Bhubaneswar', panNumber: 'ABCDE1234F', bankName: 'HDFC Bank', accountNumber: '5010049281723', totalWorkingDays: 30, paidDays: 30, lopDays: 0, basic: 35000, hra: 14000, conveyance: 3000, specialAllowance: 5000, bonus: 2000, otherEarnings: 1000, gross: '₹60,000.00', grossRaw: 60000, netSalary: '₹60,000.00', netSalaryRaw: 60000, amountInWords: 'Indian Rupees Sixty Thousand Only', paymentMode: 'Bank Transfer', transactionRef: 'TXN-982710492', status: 'Paid' },
+  { id: 'PAY-702', payslipCode: 'PAY-702', employeeName: 'Sarah Jenkins', employeeId: 'EMP-0002', month: 'July 2026', designation: 'HR Operations Manager', department: 'Human Resources', joiningDate: '01/03/2024', workLocation: 'Bhubaneswar', panNumber: 'FGHIJ5678K', bankName: 'ICICI Bank', accountNumber: '629101928374', totalWorkingDays: 30, paidDays: 30, lopDays: 0, basic: 40000, hra: 16000, conveyance: 3500, specialAllowance: 6000, bonus: 2500, otherEarnings: 1500, gross: '₹69,500.00', grossRaw: 69500, netSalary: '₹69,500.00', netSalaryRaw: 69500, amountInWords: 'Indian Rupees Sixty Nine Thousand Five Hundred Only', paymentMode: 'Bank Transfer', transactionRef: 'TXN-982710493', status: 'Paid' }
 ];
 
 export const PayrollDashboard = () => {
@@ -51,8 +50,27 @@ export const PayrollDashboard = () => {
   const [isGenPayslipOpen, setIsGenPayslipOpen] = useState(false);
 
   // New Item States
-  const [newStructure, setNewStructure] = useState({ name: '', band: '$80k - $120k', basic: '50%', hra: '20%' });
-  const [newPayslip, setNewPayslip] = useState({ employeeId: '', month: 7, year: 2026 });
+  const [newStructure, setNewStructure] = useState({
+    name: '',
+    band: '₹6,00,000 - ₹12,00,000 / Annum',
+    basic: '50%',
+    hra: '20%',
+    conveyance: '10%',
+    specialAllowance: '10%',
+    bonus: '5%',
+    otherEarnings: '5%'
+  });
+
+  const [newPayslip, setNewPayslip] = useState({
+    employeeId: '',
+    month: 7,
+    year: 2026,
+    totalWorkingDays: 30,
+    paidDays: 30,
+    lopDays: 0,
+    paymentMode: 'Bank Transfer',
+    transactionRef: ''
+  });
 
   // View Payslip Modal
   const [selectedPayslip, setSelectedPayslip] = useState(null);
@@ -87,10 +105,10 @@ export const PayrollDashboard = () => {
       if (statsRes.status === 'fulfilled' && statsRes.value?.data) {
         setStats((prev) => ({ ...prev, ...statsRes.value.data }));
       }
-      if (structRes.status === 'fulfilled' && Array.isArray(structRes.value?.data)) {
+      if (structRes.status === 'fulfilled' && Array.isArray(structRes.value?.data) && structRes.value.data.length > 0) {
         setStructuresList(structRes.value.data);
       }
-      if (slipsRes.status === 'fulfilled' && Array.isArray(slipsRes.value?.data)) {
+      if (slipsRes.status === 'fulfilled' && Array.isArray(slipsRes.value?.data) && slipsRes.value.data.length > 0) {
         setPayslipsList(slipsRes.value.data);
       }
       if (empRes.status === 'fulfilled' && Array.isArray(empRes.value?.data)) {
@@ -119,7 +137,7 @@ export const PayrollDashboard = () => {
       const res = await payrollApi.generateMonthlyPayroll({ month: 7, year: 2026 });
       setIsProcessing(false);
       setWizardStep(4);
-      toast.success(res?.message || 'Payroll for July 2026 executed & payslips generated!');
+      toast.success(res?.message || 'Payroll for July 2026 executed & Infotattva payslips generated!');
       fetchPayrollData();
     } catch (err) {
       console.error('Payroll engine error:', err);
@@ -146,7 +164,16 @@ export const PayrollDashboard = () => {
       toast.error(err.message || 'Failed to create salary structure');
     } finally {
       setIsAddStructureOpen(false);
-      setNewStructure({ name: '', band: '$80k - $120k', basic: '50%', hra: '20%', allowances: '25%', deductions: '10%' });
+      setNewStructure({
+        name: '',
+        band: '₹6,00,000 - ₹12,00,000 / Annum',
+        basic: '50%',
+        hra: '20%',
+        conveyance: '10%',
+        specialAllowance: '10%',
+        bonus: '5%',
+        otherEarnings: '5%'
+      });
     }
   };
 
@@ -157,10 +184,15 @@ export const PayrollDashboard = () => {
       const res = await payrollApi.generateMonthlyPayroll({
         month: newPayslip.month || 7,
         year: newPayslip.year || 2026,
-        employeeId: newPayslip.employeeId || undefined
+        employeeId: newPayslip.employeeId || undefined,
+        totalWorkingDays: newPayslip.totalWorkingDays,
+        paidDays: newPayslip.paidDays,
+        lopDays: newPayslip.lopDays,
+        paymentMode: newPayslip.paymentMode,
+        transactionRef: newPayslip.transactionRef
       });
       if (res?.success || res?.data) {
-        toast.success(`Payslip generated for ${targetEmp ? `${targetEmp.firstName} ${targetEmp.lastName}` : 'Active Staff'}!`);
+        toast.success(`Infotattva Payslip generated for ${targetEmp ? `${targetEmp.firstName} ${targetEmp.lastName}` : 'Active Staff'}!`);
         fetchPayrollData();
       }
     } catch (err) {
@@ -199,12 +231,18 @@ export const PayrollDashboard = () => {
     }
   };
 
+  const handleDownloadPdf = () => {
+    const empName = selectedPayslip?.employeeName || selectedPayslip?.employeeId?.firstName || 'Employee';
+    const month = selectedPayslip?.month || 'July_2026';
+    downloadPayslipPdf('infotattva-salary-slip', `Infotattva_Payslip_${empName.replace(/\s+/g, '_')}_${month.replace(/\s+/g, '_')}.pdf`);
+  };
+
   return (
     <div className="space-y-6 animate-fade-in max-w-6xl">
       {/* Page Header */}
       <PageHeader
         title="Payroll & Compensation Management"
-        subtitle="Manage salary structures, monthly payroll processing, tax calculation, and payslips."
+        subtitle="Manage Infotattva salary structures, monthly payroll processing, tax calculation, and payslips archive."
         breadcrumbs={['Payroll', activeTab.charAt(0).toUpperCase() + activeTab.slice(1)]}
         actions={
           activeTab === 'structures' ? (
@@ -236,7 +274,7 @@ export const PayrollDashboard = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <StatCard
               title="Total Payroll Budget"
-              value={stats.totalBudget || '$485,000.00'}
+              value={stats.totalBudget || '₹4,85,000.00'}
               description="July 2026 Cycle"
               icon={DollarSign}
               iconBg="bg-[#f2f8e8] text-[#59781b]"
@@ -261,7 +299,7 @@ export const PayrollDashboard = () => {
           <Card className="space-y-6 bg-white border border-slate-200 shadow-xs">
             <div>
               <h3 className="text-lg font-bold text-[#2c2738]">July 2026 Monthly Payroll Processing Wizard</h3>
-              <p className="text-xs text-slate-500">Automated salary calculation & tax withholding calculation engine</p>
+              <p className="text-xs text-slate-500">Automated salary calculation engine (Infotattva Format)</p>
             </div>
 
             {/* Wizard Steps */}
@@ -284,7 +322,7 @@ export const PayrollDashboard = () => {
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
                   <h4 className="text-base font-bold text-[#2c2738]">Cycle Summary: {stats.cycleSummary || 'July 1 - July 31, 2026'}</h4>
-                  <p className="text-xs text-slate-500 mt-0.5">Automated payroll calculation with instant payslip dispatch & tax calculation.</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Automated payroll calculation with instant Infotattva payslip generation.</p>
                 </div>
                 <Button
                   onClick={handleRunWizard}
@@ -320,22 +358,30 @@ export const PayrollDashboard = () => {
                 </span>
               </div>
 
-              <div className="grid grid-cols-4 gap-2 pt-3 border-t border-slate-100 text-xs text-center">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 pt-3 border-t border-slate-100 text-xs text-center">
                 <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/60">
-                  <p className="text-[10px] text-slate-400 font-semibold uppercase">Basic Pay</p>
+                  <p className="text-[9px] text-slate-400 font-semibold uppercase">Basic</p>
                   <p className="font-bold text-[#2c2738]">{str.basic}</p>
                 </div>
                 <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/60">
-                  <p className="text-[10px] text-slate-400 font-semibold uppercase">HRA</p>
+                  <p className="text-[9px] text-slate-400 font-semibold uppercase">HRA</p>
                   <p className="font-bold text-[#2c2738]">{str.hra}</p>
                 </div>
                 <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/60">
-                  <p className="text-[10px] text-slate-400 font-semibold uppercase">Allowances</p>
-                  <p className="font-bold text-[#534675]">{str.allowances}</p>
+                  <p className="text-[9px] text-slate-400 font-semibold uppercase">Conveyance</p>
+                  <p className="font-bold text-[#534675]">{str.conveyance || '10%'}</p>
                 </div>
                 <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/60">
-                  <p className="text-[10px] text-slate-400 font-semibold uppercase">Deductions</p>
-                  <p className="font-bold text-rose-600">{str.deductions}</p>
+                  <p className="text-[9px] text-slate-400 font-semibold uppercase">Spl. Allowance</p>
+                  <p className="font-bold text-[#534675]">{str.specialAllowance || '10%'}</p>
+                </div>
+                <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/60">
+                  <p className="text-[9px] text-slate-400 font-semibold uppercase">Bonus</p>
+                  <p className="font-bold text-[#534675]">{str.bonus || '5%'}</p>
+                </div>
+                <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/60">
+                  <p className="text-[9px] text-slate-400 font-semibold uppercase">Other Earnings</p>
+                  <p className="font-bold text-[#534675]">{str.otherEarnings || '5%'}</p>
                 </div>
               </div>
             </Card>
@@ -352,7 +398,7 @@ export const PayrollDashboard = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search employee or payslip ID..."
+              placeholder="Search employee name or payslip ID..."
               className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-xs text-[#2c2738] focus:outline-none focus:ring-2 focus:ring-[#534675]/30 focus:border-[#534675] shadow-xs"
             />
           </div>
@@ -362,12 +408,11 @@ export const PayrollDashboard = () => {
               <table className="w-full text-left text-xs text-[#2c2738]">
                 <thead className="bg-slate-50 uppercase font-bold text-slate-400 border-b border-slate-100">
                   <tr>
-                    <th className="px-4 py-3">PAYSLIP ID</th>
-                    <th className="px-4 py-3">EMPLOYEE NAME</th>
+                    <th className="px-4 py-3">PAYSLIP CODE</th>
+                    <th className="px-4 py-3">EMPLOYEE DETAILS</th>
                     <th className="px-4 py-3">PAY MONTH</th>
-                    <th className="px-4 py-3">GROSS SALARY</th>
-                    <th className="px-4 py-3">DEDUCTIONS</th>
-                    <th className="px-4 py-3">NET PAY</th>
+                    <th className="px-4 py-3">GROSS EARNINGS</th>
+                    <th className="px-4 py-3">NET SALARY PAYABLE</th>
                     <th className="px-4 py-3">STATUS</th>
                     <th className="px-4 py-3 text-right">ACTION</th>
                   </tr>
@@ -384,8 +429,7 @@ export const PayrollDashboard = () => {
                         </td>
                         <td className="px-4 py-3.5 font-medium">{pay.month}</td>
                         <td className="px-4 py-3.5 font-semibold text-slate-700">{pay.gross}</td>
-                        <td className="px-4 py-3.5 font-semibold text-rose-600">{pay.deductions}</td>
-                        <td className="px-4 py-3.5 font-bold text-[#59781b]">{pay.netSalary}</td>
+                        <td className="px-4 py-3.5 font-bold text-[#59781b]">{pay.netSalary || pay.gross}</td>
                         <td className="px-4 py-3.5">
                           <button
                             onClick={() => handleStatusChange(pay._id || pay.id, pay.status === 'Paid' ? 'Pending' : 'Paid')}
@@ -402,10 +446,15 @@ export const PayrollDashboard = () => {
                             size="sm"
                             icon={FileText}
                           >
-                            View
+                            View Slip
                           </Button>
                           <Button
-                            onClick={() => toast.success(`Downloaded payslip PDF for ${pay.employeeName}`)}
+                            onClick={() => {
+                              handleViewPayslip(pay);
+                              setTimeout(() => {
+                                downloadPayslipPdf('infotattva-salary-slip', `Infotattva_Payslip_${(pay.employeeName || 'Employee').replace(/\s+/g, '_')}_${(pay.month || 'July_2026').replace(/\s+/g, '_')}.pdf`);
+                              }, 300);
+                            }}
                             variant="ghost"
                             size="sm"
                             icon={Download}
@@ -427,7 +476,7 @@ export const PayrollDashboard = () => {
         isOpen={isAddStructureOpen}
         onClose={() => setIsAddStructureOpen(false)}
         title="Create Salary Pay Structure"
-        subtitle="Establish pay component ratios and annual compensation bands."
+        subtitle="Establish pay component ratios and annual compensation bands (INR)."
         footer={
           <>
             <Button onClick={() => setIsAddStructureOpen(false)} variant="outline">Cancel</Button>
@@ -435,48 +484,62 @@ export const PayrollDashboard = () => {
           </>
         }
       >
-        <form onSubmit={handleCreateStructure} className="space-y-4">
+        <form onSubmit={handleCreateStructure} className="space-y-4 text-xs">
           <Input
             label="Structure Title"
             value={newStructure.name}
             onChange={(e) => setNewStructure({ ...newStructure, name: e.target.value })}
-            placeholder="e.g. Lead Technical Specialist Band (L6)"
+            placeholder="e.g. Lead Specialist Band (L6)"
             required
           />
           <Input
-            label="Annual Compensation Band ($)"
+            label="Annual Compensation Band (₹)"
             value={newStructure.band}
             onChange={(e) => setNewStructure({ ...newStructure, band: e.target.value })}
-            placeholder="e.g. $120k - $160k"
+            placeholder="e.g. ₹12,00,000 - ₹16,00,000 / Annum"
             required
           />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <Input
-              label="Basic Pay Allocation (%)"
+              label="Basic Pay (%)"
               value={newStructure.basic}
               onChange={(e) => setNewStructure({ ...newStructure, basic: e.target.value })}
               placeholder="50%"
               required
             />
             <Input
-              label="HRA Component (%)"
+              label="HRA (%)"
               value={newStructure.hra}
               onChange={(e) => setNewStructure({ ...newStructure, hra: e.target.value })}
               placeholder="20%"
               required
             />
             <Input
-              label="Special Allowances (%)"
-              value={newStructure.allowances}
-              onChange={(e) => setNewStructure({ ...newStructure, allowances: e.target.value })}
-              placeholder="25%"
+              label="Conveyance (%)"
+              value={newStructure.conveyance}
+              onChange={(e) => setNewStructure({ ...newStructure, conveyance: e.target.value })}
+              placeholder="10%"
               required
             />
             <Input
-              label="Tax & Deductions (%)"
-              value={newStructure.deductions}
-              onChange={(e) => setNewStructure({ ...newStructure, deductions: e.target.value })}
+              label="Spl. Allowance (%)"
+              value={newStructure.specialAllowance}
+              onChange={(e) => setNewStructure({ ...newStructure, specialAllowance: e.target.value })}
               placeholder="10%"
+              required
+            />
+            <Input
+              label="Bonus / Incentive (%)"
+              value={newStructure.bonus}
+              onChange={(e) => setNewStructure({ ...newStructure, bonus: e.target.value })}
+              placeholder="5%"
+              required
+            />
+            <Input
+              label="Other Earnings (%)"
+              value={newStructure.otherEarnings}
+              onChange={(e) => setNewStructure({ ...newStructure, otherEarnings: e.target.value })}
+              placeholder="5%"
               required
             />
           </div>
@@ -488,7 +551,7 @@ export const PayrollDashboard = () => {
         isOpen={isGenPayslipOpen}
         onClose={() => setIsGenPayslipOpen(false)}
         title="Generate Employee Payslip"
-        subtitle="Issue official salary payment voucher for the monthly cycle."
+        subtitle="Issue official Infotattva Business Solutions salary slip."
         footer={
           <>
             <Button onClick={() => setIsGenPayslipOpen(false)} variant="outline">Cancel</Button>
@@ -496,7 +559,7 @@ export const PayrollDashboard = () => {
           </>
         }
       >
-        <form onSubmit={handleGeneratePayslip} className="space-y-4">
+        <form onSubmit={handleGeneratePayslip} className="space-y-4 text-xs">
           <Select
             label="Select Employee"
             value={newPayslip.employeeId}
@@ -508,78 +571,66 @@ export const PayrollDashboard = () => {
                 : employeesList.map((emp) => ({ label: `${emp.name} (${emp.id})`, value: emp.id })))
             ]}
           />
-          <Select
-            label="Pay Month"
-            value={String(newPayslip.month)}
-            onChange={(e) => setNewPayslip({ ...newPayslip, month: Number(e.target.value) })}
-            options={[
-              { label: 'July 2026', value: '7' },
-              { label: 'June 2026', value: '6' },
-              { label: 'May 2026', value: '5' }
-            ]}
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <Select
+              label="Pay Month"
+              value={String(newPayslip.month)}
+              onChange={(e) => setNewPayslip({ ...newPayslip, month: Number(e.target.value) })}
+              options={[
+                { label: 'July 2026', value: '7' },
+                { label: 'June 2026', value: '6' },
+                { label: 'May 2026', value: '5' }
+              ]}
+            />
+            <Select
+              label="Payment Mode"
+              value={newPayslip.paymentMode}
+              onChange={(e) => setNewPayslip({ ...newPayslip, paymentMode: e.target.value })}
+              options={[
+                { label: 'Bank Transfer', value: 'Bank Transfer' },
+                { label: 'Cheque', value: 'Cheque' },
+                { label: 'Cash', value: 'Cash' }
+              ]}
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <Input
+              label="Total Working Days"
+              type="number"
+              value={newPayslip.totalWorkingDays}
+              onChange={(e) => setNewPayslip({ ...newPayslip, totalWorkingDays: e.target.value })}
+            />
+            <Input
+              label="Paid Days"
+              type="number"
+              value={newPayslip.paidDays}
+              onChange={(e) => setNewPayslip({ ...newPayslip, paidDays: e.target.value })}
+            />
+            <Input
+              label="LOP Days"
+              type="number"
+              value={newPayslip.lopDays}
+              onChange={(e) => setNewPayslip({ ...newPayslip, lopDays: e.target.value })}
+            />
+          </div>
         </form>
       </Modal>
 
-      {/* MODAL 3: VIEW PAYSLIP VOUCHER */}
+      {/* MODAL 3: VIEW INFOTATTVA SALARY SLIP TEMPLATE */}
       <Modal
         isOpen={isViewPayslipOpen}
         onClose={() => setIsViewPayslipOpen(false)}
-        title="Official Payslip Voucher"
-        subtitle="Verified earnings statement and tax breakdown."
+        title="Official Infotattva Salary Slip Voucher"
+        subtitle="Verified earnings statement."
         footer={
           <>
-            <Button onClick={() => window.print()} variant="outline" icon={Download}>Print / Download</Button>
-            <Button onClick={() => setIsViewPayslipOpen(false)} variant="primary">Close</Button>
+            <Button onClick={() => setIsViewPayslipOpen(false)} variant="outline">Close</Button>
+            <Button onClick={handleDownloadPdf} variant="primary" icon={Download}>Download PDF</Button>
           </>
         }
       >
         {selectedPayslip && (
-          <div className="space-y-4 p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs">
-            <div className="flex justify-between items-center border-b border-slate-200 pb-3">
-              <div>
-                <h4 className="text-sm font-bold text-[#2c2738]">
-                  {selectedPayslip.employeeId?.firstName
-                    ? `${selectedPayslip.employeeId.firstName} ${selectedPayslip.employeeId.lastName}`
-                    : selectedPayslip.employeeName || 'Employee'}
-                </h4>
-                <p className="text-[10px] text-slate-500 font-mono">
-                  {selectedPayslip.employeeId?.employeeCode || selectedPayslip.employeeId || 'EMP-1001'}
-                </p>
-              </div>
-              <StatusBadge status={selectedPayslip.paymentStatus || selectedPayslip.status || 'Paid'} />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <div>
-                <span className="text-[10px] text-slate-400 uppercase font-semibold">Pay Period</span>
-                <p className="font-bold text-[#2c2738]">{selectedPayslip.month || 'July 2026'}</p>
-              </div>
-              <div>
-                <span className="text-[10px] text-slate-400 uppercase font-semibold">Base Salary</span>
-                <p className="font-bold text-[#2c2738]">{selectedPayslip.baseSalary ? `$${selectedPayslip.baseSalary.toLocaleString()}` : selectedPayslip.gross}</p>
-              </div>
-            </div>
-
-            <div className="p-3 bg-white rounded-xl border border-slate-200 space-y-2">
-              <div className="flex justify-between font-medium">
-                <span className="text-slate-600">House Rent Allowance (HRA)</span>
-                <span>{selectedPayslip.allowances?.hra ? `$${selectedPayslip.allowances.hra.toLocaleString()}` : '$1,500.00'}</span>
-              </div>
-              <div className="flex justify-between font-medium">
-                <span className="text-slate-600">Medical & Transport Allowance</span>
-                <span>$3,500.00</span>
-              </div>
-              <div className="flex justify-between font-medium text-rose-600 pt-1 border-t border-slate-100">
-                <span>Tax Withholding & Deductions</span>
-                <span>-{selectedPayslip.deductions?.tax ? `$${(selectedPayslip.deductions.tax + (selectedPayslip.deductions.providentFund || 0)).toLocaleString()}` : selectedPayslip.deductions}</span>
-              </div>
-              <div className="flex justify-between text-sm font-bold text-[#59781b] pt-2 border-t border-slate-200">
-                <span>Net Disbursed Salary</span>
-                <span>{selectedPayslip.netSalary ? (typeof selectedPayslip.netSalary === 'number' ? `$${selectedPayslip.netSalary.toLocaleString()}` : selectedPayslip.netSalary) : '$9,000.00'}</span>
-              </div>
-            </div>
-          </div>
+          <InfotattvaPayslipTemplate payslip={selectedPayslip} />
         )}
       </Modal>
     </div>

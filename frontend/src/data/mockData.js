@@ -287,14 +287,14 @@ export const holidays = [
 
 export const payrollData = {
   currentMonth: "July 2026",
-  totalBudget: "$485,000",
+  totalBudget: "₹4,85,000.00",
   processedCount: 389,
   pendingCount: 12,
   status: "In Review",
   recentPayslips: [
-    { id: "PAY-701", month: "June 2026", netSalary: "$8,541.66", basic: "$5,416.66", hra: "$2,166.66", deductions: "$625.00", status: "Paid", downloadUrl: "#" },
-    { id: "PAY-700", month: "May 2026", netSalary: "$8,541.66", basic: "$5,416.66", hra: "$2,166.66", deductions: "$625.00", status: "Paid", downloadUrl: "#" },
-    { id: "PAY-699", month: "April 2026", netSalary: "$8,541.66", basic: "$5,416.66", hra: "$2,166.66", deductions: "$625.00", status: "Paid", downloadUrl: "#" }
+    { id: "PAY-701", month: "July 2026", netSalary: "₹51,800.00", basic: "₹35,000.00", hra: "₹14,000.00", conveyance: "₹3,000.00", specialAllowance: "₹5,000.00", bonus: "₹2,000.00", otherEarnings: "₹1,000.00", grossSalary: "₹60,000.00", deductions: "₹8,200.00", status: "Paid", downloadUrl: "#" },
+    { id: "PAY-700", month: "June 2026", netSalary: "₹60,000.00", basic: "₹40,000.00", hra: "₹16,000.00", conveyance: "₹3,500.00", specialAllowance: "₹6,000.00", bonus: "₹2,500.00", otherEarnings: "₹1,500.00", grossSalary: "₹69,500.00", deductions: "₹9,500.00", status: "Paid", downloadUrl: "#" },
+    { id: "PAY-699", month: "May 2026", netSalary: "₹51,800.00", basic: "₹35,000.00", hra: "₹14,000.00", conveyance: "₹3,000.00", specialAllowance: "₹5,000.00", bonus: "₹2,000.00", otherEarnings: "₹1,000.00", grossSalary: "₹60,000.00", deductions: "₹8,200.00", status: "Paid", downloadUrl: "#" }
   ]
 };
 

@@ -2,10 +2,66 @@ const Payroll = require('../models/Payroll');
 const Employee = require('../models/Employee');
 const SalaryStructure = require('../models/SalaryStructure');
 
-// Helper to format currency
+// Helper to format currency in INR (₹)
 const formatCurrency = (val) => {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val || 0);
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 2
+  }).format(val || 0);
 };
+
+// Helper to convert numbers to Indian Rupees words
+function convertNumberToWords(amount) {
+  if (amount === undefined || amount === null || isNaN(amount) || amount === 0) return 'Indian Rupees Zero Only';
+
+  const single = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+  const double = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+  function numToWords(n) {
+    let str = '';
+    if (n > 19) {
+      str += tens[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + single[n % 10] : '');
+    } else if (n >= 10) {
+      str += double[n - 10];
+    } else {
+      str += single[n];
+    }
+    return str.trim();
+  }
+
+  function inrWords(n) {
+    n = Math.floor(n);
+    if (n === 0) return '';
+    let res = '';
+
+    if (Math.floor(n / 10000000) > 0) {
+      res += inrWords(Math.floor(n / 10000000)) + ' Crore ';
+      n %= 10000000;
+    }
+    if (Math.floor(n / 100000) > 0) {
+      res += inrWords(Math.floor(n / 100000)) + ' Lakh ';
+      n %= 100000;
+    }
+    if (Math.floor(n / 1000) > 0) {
+      res += inrWords(Math.floor(n / 1000)) + ' Thousand ';
+      n %= 1000;
+    }
+    if (Math.floor(n / 100) > 0) {
+      res += inrWords(Math.floor(n / 100)) + ' Hundred ';
+      n %= 100;
+    }
+    if (n > 0) {
+      if (res !== '') res += 'and ';
+      res += numToWords(n);
+    }
+    return res.trim();
+  }
+
+  const words = inrWords(amount);
+  return `Indian Rupees ${words} Only`;
+}
 
 // Month number to name mapping
 const monthNames = [
@@ -30,8 +86,8 @@ exports.getPayrollDashboardStats = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: {
-        totalBudget: totalBudgetVal > 0 ? formatCurrency(totalBudgetVal) : '$485,000.00',
-        processedCount: paidCount > 0 ? `${paidCount}/${totalEmployees}` : `${totalEmployees - 2}/${totalEmployees}`,
+        totalBudget: totalBudgetVal > 0 ? formatCurrency(totalBudgetVal) : '₹4,85,000.00',
+        processedCount: paidCount > 0 ? `${paidCount}/${totalEmployees}` : `${Math.max(0, totalEmployees - 2)}/${totalEmployees}`,
         pendingCount: pendingCount > 0 ? pendingCount : 2,
         cycleSummary: `July 1 - July 31, ${currentYear}`
       }
@@ -58,15 +114,18 @@ exports.getSalaryStructures = async (req, res, next) => {
 // @access  Private (Admin, HR)
 exports.createSalaryStructure = async (req, res, next) => {
   try {
-    const { name, band, basic, hra, allowances, deductions } = req.body;
+    const { name, band, basic, hra, conveyance, specialAllowance, bonus, otherEarnings, deductions } = req.body;
     const count = await SalaryStructure.countDocuments();
     const structure = await SalaryStructure.create({
       structureId: `STR-0${count + 1}`,
       name,
-      band: band || '$80k - $120k',
+      band: band || '₹6,00,000 - ₹12,00,000 / Annum',
       basic: basic || '50%',
       hra: hra || '20%',
-      allowances: allowances || '25%',
+      conveyance: conveyance || '10%',
+      specialAllowance: specialAllowance || '10%',
+      bonus: bonus || '5%',
+      otherEarnings: otherEarnings || '5%',
       deductions: deductions || '10%',
       membersCount: 0,
       status: 'Active'
@@ -82,49 +141,66 @@ exports.createSalaryStructure = async (req, res, next) => {
 // @access  Private (Admin, HR)
 exports.generateMonthlyPayroll = async (req, res, next) => {
   try {
-    const { month, year, employeeId } = req.body;
+    const { month, year, employeeId, totalWorkingDays, paidDays, lopDays, paymentMode, transactionRef } = req.body;
 
-    const monthNum = month ? (typeof month === 'number' ? month : 7) : 7;
+    const monthNum = month ? (typeof month === 'number' ? month : Number(month)) : 7;
     const yearNum = year ? Number(year) : 2026;
 
     let employees = [];
     if (employeeId) {
-      const emp = await Employee.findById(employeeId);
+      const emp = await Employee.findById(employeeId).populate('department');
       if (emp) employees.push(emp);
     } else {
-      employees = await Employee.find({ status: 'Active' });
+      employees = await Employee.find({ status: 'Active' }).populate('department');
     }
 
     const generatedPayrolls = [];
 
     for (const emp of employees) {
-      const basicSalary = emp.salary?.basic || 65000;
-      const allowancesObj = emp.salary?.allowances || { hra: basicSalary * 0.2, medical: 2000, transport: 1500 };
-      const totalAllowances = (allowancesObj.hra || 0) + (allowancesObj.medical || 0) + (allowancesObj.transport || 0);
+      const basicSalary = emp.salary?.basic || 25000;
+      const hra = emp.salary?.hra || Math.round(basicSalary * 0.4);
+      const conveyance = emp.salary?.conveyance || 3000;
+      const specialAllowance = emp.salary?.specialAllowance || 5000;
+      const bonus = emp.salary?.bonus || 2000;
+      const otherEarnings = emp.salary?.otherEarnings || 1000;
 
-      const grossSalary = basicSalary + totalAllowances;
-      const taxDeduction = grossSalary * 0.1;
-      const pfDeduction = basicSalary * 0.05;
-      const totalDeductions = taxDeduction + pfDeduction;
+      const grossSalary = basicSalary + hra + conveyance + specialAllowance + bonus + otherEarnings;
+      const netSalary = grossSalary;
+      const amountInWords = convertNumberToWords(netSalary);
 
-      const netSalary = grossSalary - totalDeductions;
+      const totDays = totalWorkingDays !== undefined ? Number(totalWorkingDays) : 30;
+      const pdDays = paidDays !== undefined ? Number(paidDays) : 30;
+      const lDays = lopDays !== undefined ? Number(lopDays) : 0;
 
       const payrollData = {
         employeeId: emp._id,
         month: monthNum,
         year: yearNum,
-        baseSalary: basicSalary,
-        allowances: {
-          hra: allowancesObj.hra || 0,
-          medical: allowancesObj.medical || 0,
-          transport: allowancesObj.transport || 0
-        },
+        payDate: new Date(),
+        panNumber: emp.panNumber || 'ABCDE1234F',
+        workLocation: emp.workLocation || 'Bhubaneswar / Remote',
+        bankName: emp.bankName || 'HDFC Bank',
+        accountNumber: emp.accountNumber || 'XXXXX1234',
+        totalWorkingDays: totDays,
+        paidDays: pdDays,
+        lopDays: lDays,
+        basic: basicSalary,
+        hra,
+        conveyance,
+        specialAllowance,
+        bonus,
+        otherEarnings,
+        grossSalary,
         deductions: {
           tax: taxDeduction,
-          providentFund: pfDeduction
+          providentFund: pfDeduction,
+          other: emp.salary?.deductions || 0,
+          totalDeductions
         },
-        grossSalary,
         netSalary,
+        amountInWords,
+        paymentMode: paymentMode || 'Bank Transfer',
+        transactionRef: transactionRef || `TXN-${Math.floor(100000000 + Math.random() * 900000000)}`,
         paymentStatus: 'Paid',
         paymentDate: new Date()
       };
@@ -133,7 +209,11 @@ exports.generateMonthlyPayroll = async (req, res, next) => {
         { employeeId: emp._id, month: monthNum, year: yearNum },
         payrollData,
         { upsert: true, new: true, runValidators: true }
-      );
+      ).populate({
+        path: 'employeeId',
+        select: 'firstName lastName employeeCode designation department panNumber workLocation bankName accountNumber joiningDate',
+        populate: { path: 'department', select: 'name' }
+      });
 
       generatedPayrolls.push(payroll);
     }
@@ -161,23 +241,57 @@ exports.getAllPayslips = async (req, res, next) => {
     if (status) query.paymentStatus = status;
 
     const payslips = await Payroll.find(query)
-      .populate('employeeId', 'firstName lastName employeeCode designation department')
+      .populate({
+        path: 'employeeId',
+        select: 'firstName lastName employeeCode designation department panNumber workLocation bankName accountNumber joiningDate',
+        populate: { path: 'department', select: 'name' }
+      })
       .sort({ year: -1, month: -1 });
 
     const formattedSlips = payslips.map((p, idx) => {
-      const empName = p.employeeId ? `${p.employeeId.firstName} ${p.employeeId.lastName}` : 'Employee';
-      const empCode = p.employeeId ? p.employeeId.employeeCode : `EMP-10${idx + 1}`;
+      const emp = p.employeeId;
+      const empName = emp ? `${emp.firstName} ${emp.lastName}` : 'Employee';
+      const empCode = emp ? emp.employeeCode : `EMP-10${idx + 1}`;
+      const designation = emp ? emp.designation : 'Software Engineer';
+      const department = emp && emp.department ? emp.department.name : 'Engineering';
       const monthStr = `${monthNames[(p.month - 1) % 12]} ${p.year}`;
+      const totalDeds = p.deductions?.totalDeductions || ((p.deductions?.tax || 0) + (p.deductions?.providentFund || 0));
+
       return {
         id: p._id,
         _id: p._id,
         payslipCode: `PAY-${700 + idx + 1}`,
         employeeName: empName,
         employeeId: empCode,
+        designation,
+        department,
+        joiningDate: emp?.joiningDate ? new Date(emp.joiningDate).toLocaleDateString('en-IN') : '01/06/2023',
+        panNumber: p.panNumber || emp?.panNumber || 'ABCDE1234F',
+        workLocation: p.workLocation || emp?.workLocation || 'Bhubaneswar / Remote',
+        bankName: p.bankName || emp?.bankName || 'HDFC Bank',
+        accountNumber: p.accountNumber || emp?.accountNumber || 'XXXXX1234',
+        totalWorkingDays: p.totalWorkingDays || 30,
+        paidDays: p.paidDays || 30,
+        lopDays: p.lopDays || 0,
         month: monthStr,
+        rawMonth: p.month,
+        rawYear: p.year,
+        payDate: p.payDate ? new Date(p.payDate).toLocaleDateString('en-IN') : '28/07/2026',
+        basic: p.basic || 25000,
+        hra: p.hra || 10000,
+        conveyance: p.conveyance || 3000,
+        specialAllowance: p.specialAllowance || 5000,
+        bonus: p.bonus || 2000,
+        otherEarnings: p.otherEarnings || 1000,
+        grossRaw: p.grossSalary,
         gross: formatCurrency(p.grossSalary),
-        deductions: formatCurrency((p.deductions?.tax || 0) + (p.deductions?.providentFund || 0)),
+        deductionsRaw: totalDeds,
+        deductions: formatCurrency(totalDeds),
+        netSalaryRaw: p.netSalary,
         netSalary: formatCurrency(p.netSalary),
+        amountInWords: p.amountInWords || convertNumberToWords(p.netSalary),
+        paymentMode: p.paymentMode || 'Bank Transfer',
+        transactionRef: p.transactionRef || 'TXN-987654321',
         status: p.paymentStatus || 'Paid'
       };
     });
@@ -208,22 +322,68 @@ exports.getMyPayslips = async (req, res, next) => {
 
     let payslips = [];
     if (empId) {
-      payslips = await Payroll.find({ employeeId: empId }).sort({ year: -1, month: -1 });
+      payslips = await Payroll.find({ employeeId: empId })
+        .populate({
+          path: 'employeeId',
+          select: 'firstName lastName employeeCode designation department panNumber workLocation bankName accountNumber joiningDate',
+          populate: { path: 'department', select: 'name' }
+        })
+        .sort({ year: -1, month: -1 });
     }
     if (payslips.length === 0) {
-      payslips = await Payroll.find().limit(5).sort({ year: -1, month: -1 });
+      payslips = await Payroll.find()
+        .populate({
+          path: 'employeeId',
+          select: 'firstName lastName employeeCode designation department panNumber workLocation bankName accountNumber joiningDate',
+          populate: { path: 'department', select: 'name' }
+        })
+        .limit(5)
+        .sort({ year: -1, month: -1 });
     }
 
     const formattedSlips = payslips.map((p, idx) => {
+      const emp = p.employeeId;
+      const empName = emp ? `${emp.firstName} ${emp.lastName}` : 'Employee';
+      const empCode = emp ? emp.employeeCode : `EMP-10${idx + 1}`;
+      const designation = emp ? emp.designation : 'Senior Frontend Developer';
+      const department = emp && emp.department ? emp.department.name : 'Engineering';
       const monthStr = `${monthNames[(p.month - 1) % 12]} ${p.year}`;
+      const totalDeds = p.deductions?.totalDeductions || ((p.deductions?.tax || 0) + (p.deductions?.providentFund || 0));
+
       return {
         id: p._id,
         _id: p._id,
+        payslipCode: `PAY-${700 + idx + 1}`,
+        employeeName: empName,
+        employeeId: empCode,
+        designation,
+        department,
+        joiningDate: emp?.joiningDate ? new Date(emp.joiningDate).toLocaleDateString('en-IN') : '01/06/2023',
+        panNumber: p.panNumber || emp?.panNumber || 'ABCDE1234F',
+        workLocation: p.workLocation || emp?.workLocation || 'Bhubaneswar / Remote',
+        bankName: p.bankName || emp?.bankName || 'HDFC Bank',
+        accountNumber: p.accountNumber || emp?.accountNumber || 'XXXXX1234',
+        totalWorkingDays: p.totalWorkingDays || 30,
+        paidDays: p.paidDays || 30,
+        lopDays: p.lopDays || 0,
         month: monthStr,
-        basic: formatCurrency(p.baseSalary),
-        hra: formatCurrency(p.allowances?.hra),
-        deductions: formatCurrency((p.deductions?.tax || 0) + (p.deductions?.providentFund || 0)),
+        rawMonth: p.month,
+        rawYear: p.year,
+        payDate: p.payDate ? new Date(p.payDate).toLocaleDateString('en-IN') : '28/07/2026',
+        basic: formatCurrency(p.basic || p.baseSalary),
+        basicRaw: p.basic || p.baseSalary,
+        hra: formatCurrency(p.hra || p.allowances?.hra),
+        conveyance: formatCurrency(p.conveyance || 3000),
+        specialAllowance: formatCurrency(p.specialAllowance || 5000),
+        bonus: formatCurrency(p.bonus || 2000),
+        otherEarnings: formatCurrency(p.otherEarnings || 1000),
+        grossSalary: formatCurrency(p.grossSalary),
+        deductions: formatCurrency(totalDeds),
         netSalary: formatCurrency(p.netSalary),
+        netSalaryRaw: p.netSalary,
+        amountInWords: p.amountInWords || convertNumberToWords(p.netSalary),
+        paymentMode: p.paymentMode || 'Bank Transfer',
+        transactionRef: p.transactionRef || 'TXN-987654321',
         status: p.paymentStatus || 'Paid'
       };
     });
@@ -244,7 +404,11 @@ exports.getMyPayslips = async (req, res, next) => {
 exports.getPayslipById = async (req, res, next) => {
   try {
     const payslip = await Payroll.findById(req.params.id)
-      .populate('employeeId', 'firstName lastName email employeeCode designation department address');
+      .populate({
+        path: 'employeeId',
+        select: 'firstName lastName email employeeCode designation department panNumber workLocation bankName accountNumber joiningDate',
+        populate: { path: 'department', select: 'name' }
+      });
 
     if (!payslip) {
       return res.status(404).json({ success: false, message: 'Payslip record not found' });

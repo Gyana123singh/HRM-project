@@ -6,6 +6,8 @@ import { Modal } from '../../../components/ui/Modal';
 import { StatusBadge } from '../../../components/common/StatusBadge';
 import { payrollData } from '../../../data/mockData';
 import { payrollApi } from '../../../api/payrollApi';
+import { InfotattvaPayslipTemplate } from '../../hr/payroll/InfotattvaPayslipTemplate';
+import { downloadPayslipPdf } from '../../../utils/pdfDownload';
 import { Download, Eye, FileText, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -33,39 +35,12 @@ export const ESSPayslips = () => {
     fetchMyPayslips();
   }, []);
 
-  const handleDownload = (month, payslipObj) => {
-    const ps = payslipObj || payslips.find(p => p.month === month) || payslips[0];
-    const payslipText = `
-==================================================
-        OFFICIAL SALARY DISBURSEMENT PAYSLIP
-                  ${ps.month || month || 'July 2026'}
-==================================================
-Employee: Rahul Sharma (Senior Frontend Developer)
-Department: Engineering
-Disbursement Date: 28 July 2026
-Payment Status: ${ps.status || ps.paymentStatus || 'Paid'}
---------------------------------------------------
-EARNINGS:
-Basic Salary:            ${ps.basic || '$5,416.66'}
-HRA & Allowances:        ${ps.hra || '$3,750.00'}
-Gross Compensation:      ${ps.grossSalary || '$9,166.66'}
-
-DEDUCTIONS:
-PF & Income Tax:        -${ps.deductions || ps.totalDeductions || '$625.00'}
---------------------------------------------------
-NET SALARY PAYABLE:      ${ps.netSalary || '$8,541.66'}
-==================================================
-    `;
-    const blob = new Blob([payslipText], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `Payslip_${(ps.month || month || 'July_2026').replace(/\s+/g, '_')}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    toast.success(`Payslip statement downloaded!`);
+  const handleDownload = (ps) => {
+    setSelectedPayslip(ps);
+    const monthStr = ps?.month || 'July_2026';
+    setTimeout(() => {
+      downloadPayslipPdf('infotattva-salary-slip', `Infotattva_Payslip_${monthStr.replace(/\s+/g, '_')}.pdf`);
+    }, 300);
   };
 
   const latestSlip = payslips[0] || {};
@@ -74,7 +49,7 @@ NET SALARY PAYABLE:      ${ps.netSalary || '$8,541.66'}
     <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
       <PageHeader
         title="My Payslips & Salary Information"
-        subtitle="Access monthly salary breakdowns, tax withholdings, and download PDF payslips."
+        subtitle="Access Infotattva Business Solutions salary breakdowns, earnings statements, and official PDF payslips."
         breadcrumbs={['My Finance', 'Payslips']}
       />
 
@@ -84,19 +59,19 @@ NET SALARY PAYABLE:      ${ps.netSalary || '$8,541.66'}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-medium">
           <div>
             <span className="text-slate-400 font-normal block">Basic Salary (Monthly)</span>
-            <span className="text-slate-800 font-bold text-sm">{latestSlip.basic || '$5,416.66'}</span>
+            <span className="text-slate-800 font-bold text-sm">{latestSlip.basic || '₹35,000.00'}</span>
           </div>
           <div>
-            <span className="text-slate-400 font-normal block">HRA & Allowances</span>
-            <span className="text-slate-800 font-bold text-sm">{latestSlip.hra || '$3,750.00'}</span>
+            <span className="text-slate-400 font-normal block">HRA Allowance</span>
+            <span className="text-slate-800 font-bold text-sm">{latestSlip.hra || '₹14,000.00'}</span>
           </div>
           <div>
-            <span className="text-slate-400 font-normal block">Monthly Deductions</span>
-            <span className="text-rose-600 font-bold text-sm">-{latestSlip.deductions || '$625.00'}</span>
+            <span className="text-slate-400 font-normal block">Special Allowance</span>
+            <span className="text-slate-800 font-bold text-sm">{latestSlip.specialAllowance || '₹5,000.00'}</span>
           </div>
           <div>
             <span className="text-slate-400 font-normal block">Net Pay Disbursed</span>
-            <span className="text-emerald-600 font-black text-base">{latestSlip.netSalary || '$8,541.66'}</span>
+            <span className="text-emerald-600 font-black text-base">{latestSlip.netSalary || latestSlip.grossSalary || '₹60,000.00'}</span>
           </div>
         </div>
       </Card>
@@ -122,7 +97,7 @@ NET SALARY PAYABLE:      ${ps.netSalary || '$8,541.66'}
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-slate-800">{ps.month}</h4>
-                    <p className="text-xs text-slate-500 font-medium">Net Pay: <strong className="text-emerald-600">{ps.netSalary}</strong></p>
+                    <p className="text-xs text-slate-500 font-medium">Net Pay: <strong className="text-emerald-600">{ps.netSalary || ps.grossSalary || '₹60,000.00'}</strong></p>
                   </div>
                 </div>
 
@@ -131,7 +106,12 @@ NET SALARY PAYABLE:      ${ps.netSalary || '$8,541.66'}
                   <Button onClick={() => setSelectedPayslip(ps)} variant="outline" size="sm" icon={Eye}>
                     View Payslip
                   </Button>
-                  <Button onClick={() => handleDownload(ps.month, ps)} variant="primary" size="sm" icon={Download}>
+                  <Button
+                    onClick={() => handleDownload(ps)}
+                    variant="primary"
+                    size="sm"
+                    icon={Download}
+                  >
                     Download PDF
                   </Button>
                 </div>
@@ -146,34 +126,25 @@ NET SALARY PAYABLE:      ${ps.netSalary || '$8,541.66'}
         <Modal
           isOpen={Boolean(selectedPayslip)}
           onClose={() => setSelectedPayslip(null)}
-          title={`Payslip Statement - ${selectedPayslip.month}`}
-          subtitle="Epic Corporation Inc. • Salary Disbursement Voucher"
+          title={`Official Payslip Voucher - ${selectedPayslip.month}`}
+          subtitle="INFOTATTVA BUSINESS SOLUTIONS (OPC) PRIVATE LIMITED"
           footer={
-            <Button onClick={() => handleDownload(selectedPayslip.month, selectedPayslip)} variant="primary" icon={Download}>
-              Download Official PDF
-            </Button>
+            <>
+              <Button onClick={() => setSelectedPayslip(null)} variant="outline">Close</Button>
+              <Button
+                onClick={() => {
+                  const monthStr = selectedPayslip?.month || 'July_2026';
+                  downloadPayslipPdf('infotattva-salary-slip', `Infotattva_Payslip_${monthStr.replace(/\s+/g, '_')}.pdf`);
+                }}
+                variant="primary"
+                icon={Download}
+              >
+                Download PDF
+              </Button>
+            </>
           }
         >
-          <div className="space-y-4 text-xs text-slate-700 font-medium">
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-              <div className="flex justify-between border-b border-slate-200 pb-2">
-                <span>Basic Salary:</span>
-                <strong>{selectedPayslip.basic || '$5,416.66'}</strong>
-              </div>
-              <div className="flex justify-between border-b border-slate-200 pb-2">
-                <span>HRA & House Allowance:</span>
-                <strong>{selectedPayslip.hra || '$3,750.00'}</strong>
-              </div>
-              <div className="flex justify-between border-b border-slate-200 pb-2 text-rose-600">
-                <span>Tax & Insurance Deductions:</span>
-                <strong>-{selectedPayslip.deductions || '$625.00'}</strong>
-              </div>
-              <div className="flex justify-between pt-2 text-sm text-emerald-600 font-black">
-                <span>Net Salary Payable:</span>
-                <span>{selectedPayslip.netSalary}</span>
-              </div>
-            </div>
-          </div>
+          <InfotattvaPayslipTemplate payslip={selectedPayslip} />
         </Modal>
       )}
     </div>

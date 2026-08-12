@@ -66,17 +66,31 @@ const EmployeeSchema = new mongoose.Schema(
     },
     managerId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Employee'
+      ref: 'Employee'},
+    panNumber: {
+      type: String,
+      default: 'ABCDE1234F'
+    },
+    workLocation: {
+      type: String,
+      default: 'Bhubaneswar / Remote'
+    },
+    bankName: {
+      type: String,
+      default: 'HDFC Bank'
+    },
+    accountNumber: {
+      type: String,
+      default: 'XXXXX1234'
     },
     salary: {
-      basic: { type: Number, default: 0 },
-      allowances: {
-        hra: { type: Number, default: 0 },
-        medical: { type: Number, default: 0 },
-        transport: { type: Number, default: 0 },
-        other: { type: Number, default: 0 }
-      },
-      deductions: { type: Number, default: 0 }
+      basic: { type: Number, default: 25000 },
+      hra: { type: Number, default: 10000 },
+      conveyance: { type: Number, default: 3000 },
+      specialAllowance: { type: Number, default: 5000 },
+      bonus: { type: Number, default: 2000 },
+      otherEarnings: { type: Number, default: 1000 },
+      deductions: { type: Number, default: 3000 }
     },
     address: {
       street: String,
