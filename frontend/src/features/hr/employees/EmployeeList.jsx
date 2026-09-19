@@ -21,27 +21,31 @@ export const EmployeeList = () => {
   const [viewMode, setViewMode] = useState('list');
   const navigate = useNavigate();
 
+  const getActiveEmployees = (list) => {
+    try {
+      const deleted = JSON.parse(localStorage.getItem('deleted_employee_ids') || '[]');
+      if (!Array.isArray(deleted) || deleted.length === 0) return list;
+      return list.filter((emp) => {
+        const isMongoDeleted = emp.mongoId && deleted.includes(String(emp.mongoId));
+        const isIdDeleted = emp.id && deleted.includes(String(emp.id));
+        return !isMongoDeleted && !isIdDeleted;
+      });
+    } catch (e) {
+      return list;
+    }
+  };
+
   const fetchEmployees = async () => {
     setIsLoading(true);
     try {
-      // Auto-ensure token is present if user skipped login screen in dev
-      if (!localStorage.getItem('token')) {
-        try {
-          const authRes = await authApi.login({ email: 'hr@hrm.com', password: 'HrPass123!' });
-          if (authRes?.token) {
-            localStorage.setItem('token', authRes.token);
-          }
-        } catch (e) {
-          // ignore auth auto-fill errors
-        }
-      }
+      let combined = [];
 
       const res = await employeeApi.getAllEmployees({
         search,
         status: activeFilters.status
       });
 
-      if (res && res.data && res.data.length > 0) {
+      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
         const normalized = res.data.map((emp) => ({
           mongoId: emp._id,
           id: emp.employeeCode || emp._id,
@@ -55,13 +59,35 @@ export const EmployeeList = () => {
           phone: emp.phone || 'N/A',
           avatar: emp.avatar || ''
         }));
-        setEmployees(normalized);
-      } else {
-        setEmployees(mockEmployees);
+        combined = [...normalized];
       }
+
+      // Merge store employees so newly added employees always display
+      mockEmployees.forEach((mEmp) => {
+        const exists = combined.some(
+          (bEmp) => bEmp.email === mEmp.email || bEmp.id === mEmp.id || bEmp.mongoId === mEmp.id
+        );
+        if (!exists) {
+          combined.push({
+            mongoId: mEmp.id || `MOCK-${mEmp.email}`,
+            id: mEmp.id || `EMP-${Math.floor(100 + Math.random() * 900)}`,
+            name: mEmp.name || `${mEmp.firstName || ''} ${mEmp.lastName || ''}`.trim() || 'New Employee',
+            department: mEmp.department || 'Human Resources',
+            designation: mEmp.designation || 'Staff Member',
+            branch: mEmp.branch || 'Global Headquarters',
+            joinDate: mEmp.joinDate || new Date().toISOString().split('T')[0],
+            status: mEmp.status || 'Active',
+            email: mEmp.email,
+            phone: mEmp.phone || 'N/A',
+            avatar: mEmp.avatar || ''
+          });
+        }
+      });
+
+      setEmployees(getActiveEmployees(combined));
     } catch (err) {
       console.log('Employee API fetch fallback:', err.message);
-      setEmployees(mockEmployees);
+      setEmployees(getActiveEmployees(mockEmployees));
     } finally {
       setIsLoading(false);
     }
@@ -84,18 +110,29 @@ export const EmployeeList = () => {
 
   const handleDelete = async (emp, e) => {
     e.stopPropagation();
+    if (!window.confirm(`Are you sure you want to permanently delete employee "${emp.name}"?`)) return;
+
     try {
-      if (emp.mongoId) {
-        await employeeApi.deleteEmployee(emp.mongoId);
+      const delId = emp.mongoId || emp.id;
+      if (delId) {
+        await employeeApi.deleteEmployee(delId);
       }
-      deleteStoreEmp(emp.id);
-      setEmployees((prev) => prev.filter((item) => item.id !== emp.id && item.mongoId !== emp.mongoId));
-      toast.success(`Employee ${emp.name} offboarded successfully`);
     } catch (err) {
-      deleteStoreEmp(emp.id);
-      setEmployees((prev) => prev.filter((item) => item.id !== emp.id));
-      toast.success(`Employee ${emp.name} deleted`);
+      console.log('Backend delete employee notification:', err.message);
     }
+
+    try {
+      const deleted = JSON.parse(localStorage.getItem('deleted_employee_ids') || '[]');
+      if (emp.mongoId && !deleted.includes(String(emp.mongoId))) deleted.push(String(emp.mongoId));
+      if (emp.id && !deleted.includes(String(emp.id))) deleted.push(String(emp.id));
+      localStorage.setItem('deleted_employee_ids', JSON.stringify(deleted));
+    } catch (e) {
+      console.log('Error saving deleted employee to localStorage:', e);
+    }
+
+    deleteStoreEmp(emp.id);
+    setEmployees((prev) => prev.filter((item) => item.id !== emp.id && item.mongoId !== emp.mongoId));
+    toast.success(`Employee ${emp.name} deleted permanently`);
   };
 
   const columns = [

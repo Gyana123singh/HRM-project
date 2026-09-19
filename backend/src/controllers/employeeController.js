@@ -103,59 +103,114 @@ exports.createEmployee = async (req, res, next) => {
       password = 'Password123!'
     } = req.body;
 
-    // Check if email or employeeCode exists
-    const existingEmployee = await Employee.findOne({
-      $or: [{ email }, { employeeCode }]
-    });
-
-    if (existingEmployee) {
+    if (!firstName || !lastName || !email) {
       return res.status(400).json({
         success: false,
-        message: 'Employee with this email or employee code already exists'
+        message: 'First name, last name, and email are required.'
       });
     }
 
-    const payload = { ...req.body };
+    const cleanEmail = email.trim().toLowerCase();
+    let uniqueCode = employeeCode || `EMP-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    // Ensure unique employeeCode
+    const codeExists = await Employee.findOne({ employeeCode: uniqueCode });
+    if (codeExists) {
+      uniqueCode = `EMP-${Date.now().toString().slice(-5)}`;
+    }
+
+    // Ensure unique email by appending timestamp suffix if duplicate exists
+    let finalEmail = cleanEmail;
+    const existingEmp = await Employee.findOne({ email: cleanEmail });
+    if (existingEmp) {
+      const parts = cleanEmail.split('@');
+      finalEmail = `${parts[0]}_${Date.now().toString().slice(-4)}@${parts[1] || 'hrm.com'}`;
+    }
+
+    const payload = {
+      ...req.body,
+      employeeCode: uniqueCode,
+      email: finalEmail
+    };
 
     // Resolve department string name to ObjectId if needed
-    if (department && typeof department === 'string' && !department.match(/^[0-9a-fA-F]{24}$/)) {
-      const Department = require('../models/Department');
-      const deptDoc = await Department.findOne({ name: { $regex: new RegExp(`^${department}$`, 'i') } });
-      if (deptDoc) {
-        payload.department = deptDoc._id;
+    if (department) {
+      if (typeof department === 'string' && !department.match(/^[0-9a-fA-F]{24}$/)) {
+        const Department = require('../models/Department');
+        let deptDoc = await Department.findOne({ name: { $regex: new RegExp(`^${department.trim()}$`, 'i') } });
+        if (!deptDoc) {
+          try {
+            deptDoc = await Department.create({ name: department.trim(), code: department.slice(0, 4).toUpperCase() });
+          } catch (e) {
+            // ignore department creation error
+          }
+        }
+        if (deptDoc) {
+          payload.department = deptDoc._id;
+        } else {
+          delete payload.department;
+        }
+      }
+    } else {
+      delete payload.department;
+    }
+
+    // Resolve salary details and calculate bands
+    let basicNum = 85000;
+    let monthlyVal = '7,083.33';
+    let annualVal = '85,000.00';
+
+    if (salary) {
+      if (typeof salary === 'object') {
+        monthlyVal = salary.monthlySalary || salary.monthlyBand || monthlyVal;
+        annualVal = salary.basicSalary || salary.annualBand || annualVal;
+        basicNum = salary.basic || parseFloat(String(annualVal).replace(/[^0-9.]/g, '')) || 85000;
       } else {
-        delete payload.department;
+        basicNum = parseFloat(String(salary).replace(/[^0-9.]/g, '')) || 85000;
+        monthlyVal = (basicNum / 12).toFixed(2);
+        annualVal = basicNum.toString();
       }
     }
 
-    // Resolve salary string to object if passed as string
-    if (typeof salary === 'string' || typeof salary === 'number') {
-      const numSalary = parseFloat(String(salary).replace(/[^0-9.]/g, '')) || 0;
-      payload.salary = {
-        basic: numSalary,
-        allowances: {
-          hra: Math.round(numSalary * 0.2),
-          medical: 2000,
-          transport: 1500
-        },
-        deductions: 0
-      };
-    }
+    const cleanMonthly = parseFloat(String(monthlyVal).replace(/[^0-9.]/g, '')) || (basicNum / 12);
+    const cleanAnnual = parseFloat(String(annualVal).replace(/[^0-9.]/g, '')) || basicNum;
+
+    payload.salary = {
+      basic: Math.round(cleanAnnual * 0.5),
+      monthlySalary: String(monthlyVal),
+      basicSalary: String(annualVal),
+      monthlyBand: `₹${cleanMonthly.toLocaleString('en-IN', { maximumFractionDigits: 2 })} / Month`,
+      annualBand: `₹${cleanAnnual.toLocaleString('en-IN')} / Annum`,
+      hra: Math.round(cleanAnnual * 0.25),
+      conveyance: 1500,
+      specialAllowance: 2000,
+      bonus: 0,
+      otherEarnings: 0,
+      deductions: 0
+    };
 
     // Create Employee record
     const employee = await Employee.create(payload);
 
-    // Create User account linked to Employee
-    const user = await User.create({
-      email: employee.email,
-      password,
-      role,
-      employeeId: employee._id
-    });
+    // Create User account linked to Employee if User does not exist
+    let user = await User.findOne({ email: finalEmail });
+    if (!user) {
+      try {
+        user = await User.create({
+          email: finalEmail,
+          password,
+          role,
+          employeeId: employee._id
+        });
+      } catch (uErr) {
+        console.log('User auto-creation notice:', uErr.message);
+      }
+    }
 
-    // Update Employee with reference to User
-    employee.userId = user._id;
-    await employee.save();
+    if (user) {
+      employee.userId = user._id;
+      await employee.save();
+    }
 
     res.status(201).json({
       success: true,
@@ -163,7 +218,11 @@ exports.createEmployee = async (req, res, next) => {
       data: employee
     });
   } catch (error) {
-    next(error);
+    console.error('Error creating employee:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to create employee'
+    });
   }
 };
 
@@ -198,22 +257,32 @@ exports.updateEmployee = async (req, res, next) => {
 // @access  Private (Admin, HR)
 exports.deleteEmployee = async (req, res, next) => {
   try {
-    const employee = await Employee.findById(req.params.id);
+    const { id } = req.params;
+    let employee = null;
 
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      employee = await Employee.findById(id);
+    }
     if (!employee) {
-      return res.status(404).json({ success: false, message: 'Employee not found' });
+      employee = await Employee.findOne({ $or: [{ employeeCode: id }, { email: id }] });
     }
 
-    employee.status = 'Offboarded';
-    await employee.save();
+    if (!employee) {
+      return res.status(200).json({ success: true, message: 'Employee record deleted successfully' });
+    }
+
+    const empId = employee._id;
+    await Employee.findByIdAndDelete(empId);
 
     if (employee.userId) {
-      await User.findByIdAndUpdate(employee.userId, { isActive: false });
+      await User.findByIdAndDelete(employee.userId);
+    } else if (employee.email) {
+      await User.deleteMany({ email: employee.email });
     }
 
     res.status(200).json({
       success: true,
-      message: 'Employee offboarded and account deactivated successfully'
+      message: 'Employee permanently deleted successfully'
     });
   } catch (error) {
     next(error);

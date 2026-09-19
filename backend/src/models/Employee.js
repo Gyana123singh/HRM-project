@@ -84,13 +84,17 @@ const EmployeeSchema = new mongoose.Schema(
       default: 'XXXXX1234'
     },
     salary: {
-      basic: { type: Number, default: 25000 },
-      hra: { type: Number, default: 10000 },
-      conveyance: { type: Number, default: 3000 },
-      specialAllowance: { type: Number, default: 5000 },
-      bonus: { type: Number, default: 2000 },
-      otherEarnings: { type: Number, default: 1000 },
-      deductions: { type: Number, default: 3000 }
+      basic: { type: Number, default: 7000 },
+      monthlySalary: { type: String, default: '7,083.33' },
+      basicSalary: { type: String, default: '85,000.00' },
+      monthlyBand: { type: String, default: '₹7,083.33 / Month' },
+      annualBand: { type: String, default: '₹85,000 / Annum' },
+      hra: { type: Number, default: 3500 },
+      conveyance: { type: Number, default: 1500 },
+      specialAllowance: { type: Number, default: 2000 },
+      bonus: { type: Number, default: 0 },
+      otherEarnings: { type: Number, default: 0 },
+      deductions: { type: Number, default: 0 }
     },
     address: {
       street: String,

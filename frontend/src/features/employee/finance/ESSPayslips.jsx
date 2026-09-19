@@ -55,23 +55,28 @@ export const ESSPayslips = () => {
 
       {/* Salary Overview Card */}
       <Card className="bg-white border-slate-200 space-y-4">
-        <h3 className="text-base font-bold text-slate-800 border-b border-slate-100 pb-2">Annual Compensation Breakdown</h3>
+        <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+          <h3 className="text-base font-bold text-slate-800">Annual & Monthly Compensation Breakdown</h3>
+          <span className="text-xs font-bold text-[#534675] bg-[#f0edf7] px-2.5 py-1 rounded-lg border border-[#dcd6e8]">
+            Monthly Band: {latestSlip.grossSalary || '₹14,000.00'} / Month
+          </span>
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-medium">
           <div>
-            <span className="text-slate-400 font-normal block">Basic Salary (Monthly)</span>
-            <span className="text-slate-800 font-bold text-sm">{latestSlip.basic || '₹35,000.00'}</span>
+            <span className="text-slate-400 font-normal block">Basic Salary (50%)</span>
+            <span className="text-slate-800 font-bold text-sm">{latestSlip.basic || '₹7,000.00'}</span>
           </div>
           <div>
-            <span className="text-slate-400 font-normal block">HRA Allowance</span>
-            <span className="text-slate-800 font-bold text-sm">{latestSlip.hra || '₹14,000.00'}</span>
+            <span className="text-slate-400 font-normal block">HRA Allowance (50% Basic)</span>
+            <span className="text-slate-800 font-bold text-sm">{latestSlip.hra || '₹3,500.00'}</span>
           </div>
           <div>
             <span className="text-slate-400 font-normal block">Special Allowance</span>
-            <span className="text-slate-800 font-bold text-sm">{latestSlip.specialAllowance || '₹5,000.00'}</span>
+            <span className="text-slate-800 font-bold text-sm">{latestSlip.specialAllowance || '₹2,000.00'}</span>
           </div>
           <div>
             <span className="text-slate-400 font-normal block">Net Pay Disbursed</span>
-            <span className="text-emerald-600 font-black text-base">{latestSlip.netSalary || latestSlip.grossSalary || '₹60,000.00'}</span>
+            <span className="text-emerald-600 font-black text-base">{latestSlip.netSalary || latestSlip.grossSalary || '₹14,000.00'}</span>
           </div>
         </div>
       </Card>

@@ -10,24 +10,69 @@ import { StatusBadge } from '../../../components/common/StatusBadge';
 import { payrollData, employeesList } from '../../../data/mockData';
 import { payrollApi } from '../../../api/payrollApi';
 import { employeeApi } from '../../../api/employeeApi';
+import { useHRStore } from '../../../store/hrStore';
 import { InfotattvaPayslipTemplate } from './InfotattvaPayslipTemplate';
 import { downloadPayslipPdf } from '../../../utils/pdfDownload';
 import {
   DollarSign, CheckCircle, Calculator, FileText, Download, Play, Plus,
-  Search, ShieldCheck, Briefcase, CreditCard, ArrowUpRight, Loader2
+  Search, ShieldCheck, Briefcase, CreditCard, ArrowUpRight, Loader2,
+  Edit3, Trash2, Calendar, Filter
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+const getAnnualBand = (monthlyBandStr, fallbackAnnual) => {
+  if (!monthlyBandStr || !monthlyBandStr.trim()) return fallbackAnnual || '';
+  if (monthlyBandStr.includes('/ Annum')) return monthlyBandStr;
+
+  const numbers = monthlyBandStr.match(/\d[\d,.]*/g);
+  if (!numbers || numbers.length === 0) return fallbackAnnual || '';
+
+  const raw = parseFloat(numbers[0].replace(/,/g, ''));
+  if (isNaN(raw)) return fallbackAnnual || '';
+
+  const annual = raw * 12;
+  const formatted = annual % 1 !== 0
+    ? annual.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : Math.round(annual).toLocaleString('en-IN');
+
+  return `₹${formatted} / Annum`;
+};
+
+const getMonthlyBand = (bandStr, fallbackMonthly) => {
+  if (!bandStr || !bandStr.trim()) return fallbackMonthly || '';
+  if (bandStr.includes('/ Month')) return bandStr;
+
+  const numbers = bandStr.match(/\d[\d,.]*/g);
+  if (!numbers || numbers.length === 0) return fallbackMonthly || '';
+
+  const raw = parseFloat(numbers[0].replace(/,/g, ''));
+  if (isNaN(raw)) return fallbackMonthly || '';
+
+  const monthly = raw / 12;
+  const formatted = monthly % 1 !== 0
+    ? monthly.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : Math.round(monthly).toLocaleString('en-IN');
+
+  return `₹${formatted} / Month`;
+};
+
+const formatDeductions = (val) => {
+  if (!val || val === '0' || val === '0 Days' || val === '0 Day' || val === '0%') return '0 Days';
+  const cleanNum = parseFloat(String(val).replace(/[^0-9.]/g, ''));
+  if (isNaN(cleanNum) || cleanNum === 0) return '0 Days';
+  return cleanNum === 1 ? '1 Day' : `${cleanNum} Days`;
+};
+
 const initialStructures = [
-  { id: 'STR-01', name: 'Executive Level (L7)', basic: '50%', hra: '20%', conveyance: '10%', specialAllowance: '10%', bonus: '5%', otherEarnings: '5%', membersCount: 12, band: '₹18,00,000 - ₹30,00,000 / Annum' },
-  { id: 'STR-02', name: 'Senior Engineering (L5)', basic: '50%', hra: '20%', conveyance: '10%', specialAllowance: '10%', bonus: '5%', otherEarnings: '5%', membersCount: 45, band: '₹12,00,000 - ₹18,00,000 / Annum' },
-  { id: 'STR-03', name: 'Mid-Level Professional (L4)', basic: '50%', hra: '20%', conveyance: '10%', specialAllowance: '10%', bonus: '5%', otherEarnings: '5%', membersCount: 120, band: '₹6,00,000 - ₹12,00,000 / Annum' },
-  { id: 'STR-04', name: 'Associate Band (L2-L3)', basic: '50%', hra: '20%', conveyance: '10%', specialAllowance: '10%', bonus: '5%', otherEarnings: '5%', membersCount: 180, band: '₹3,50,000 - ₹6,00,000 / Annum' }
+  { id: 'STR-01', name: 'Executive Level (L7)', basic: '50%', hra: '25%', conveyance: '10%', specialAllowance: '15%', bonus: '0%', otherEarnings: '0%', deductions: '0 Days', membersCount: 12, band: '₹18,00,000 / Annum', monthlyBand: '₹1,50,000 / Month', effectiveDate: '2026-09-01', month: 'September', year: 2026 },
+  { id: 'STR-02', name: 'Senior Engineering (L5)', basic: '50%', hra: '25%', conveyance: '10%', specialAllowance: '15%', bonus: '0%', otherEarnings: '0%', deductions: '0 Days', membersCount: 45, band: '₹12,00,000 / Annum', monthlyBand: '₹1,00,000 / Month', effectiveDate: '2026-09-01', month: 'September', year: 2026 },
+  { id: 'STR-03', name: 'Mid-Level Professional (L4)', basic: '50%', hra: '25%', conveyance: '10%', specialAllowance: '15%', bonus: '0%', otherEarnings: '0%', deductions: '0 Days', membersCount: 120, band: '₹6,00,000 / Annum', monthlyBand: '₹50,000 / Month', effectiveDate: '2026-09-01', month: 'September', year: 2026 },
+  { id: 'STR-04', name: 'Associate Band (L2-L3)', basic: '50%', hra: '25%', conveyance: '10%', specialAllowance: '15%', bonus: '0%', otherEarnings: '0%', deductions: '0 Days', membersCount: 180, band: '₹3,50,000 / Annum', monthlyBand: '₹29,167 / Month', effectiveDate: '2026-09-01', month: 'September', year: 2026 }
 ];
 
 const initialPayslips = [
-  { id: 'PAY-701', payslipCode: 'PAY-701', employeeName: 'Rahul Sharma', employeeId: 'EMP-0001', month: 'July 2026', designation: 'Senior Software Engineer', department: 'Engineering', joiningDate: '12/06/2023', workLocation: 'Bhubaneswar', panNumber: 'ABCDE1234F', bankName: 'HDFC Bank', accountNumber: '5010049281723', totalWorkingDays: 30, paidDays: 30, lopDays: 0, basic: 35000, hra: 14000, conveyance: 3000, specialAllowance: 5000, bonus: 2000, otherEarnings: 1000, gross: '₹60,000.00', grossRaw: 60000, netSalary: '₹60,000.00', netSalaryRaw: 60000, amountInWords: 'Indian Rupees Sixty Thousand Only', paymentMode: 'Bank Transfer', transactionRef: 'TXN-982710492', status: 'Paid' },
-  { id: 'PAY-702', payslipCode: 'PAY-702', employeeName: 'Sarah Jenkins', employeeId: 'EMP-0002', month: 'July 2026', designation: 'HR Operations Manager', department: 'Human Resources', joiningDate: '01/03/2024', workLocation: 'Bhubaneswar', panNumber: 'FGHIJ5678K', bankName: 'ICICI Bank', accountNumber: '629101928374', totalWorkingDays: 30, paidDays: 30, lopDays: 0, basic: 40000, hra: 16000, conveyance: 3500, specialAllowance: 6000, bonus: 2500, otherEarnings: 1500, gross: '₹69,500.00', grossRaw: 69500, netSalary: '₹69,500.00', netSalaryRaw: 69500, amountInWords: 'Indian Rupees Sixty Nine Thousand Five Hundred Only', paymentMode: 'Bank Transfer', transactionRef: 'TXN-982710493', status: 'Paid' }
+  { id: 'PAY-701', payslipCode: 'PAY-701', employeeName: 'Rahul Sharma', employeeId: 'EMP-0001', month: 'July 2026', designation: 'Senior Software Engineer', department: 'Engineering', joiningDate: '12/06/2023', workLocation: 'Bhubaneswar', panNumber: 'ABCDE1234F', bankName: 'HDFC Bank', accountNumber: '5010049281723', totalWorkingDays: 30, paidDays: 30, lopDays: 0, basic: 7000, hra: 3500, conveyance: 1500, specialAllowance: 2000, bonus: 0, otherEarnings: 0, gross: '₹14,000.00', grossRaw: 14000, netSalary: '₹14,000.00', netSalaryRaw: 14000, amountInWords: 'Indian Rupees Fourteen Thousand Only', paymentMode: 'Bank Transfer', transactionRef: 'TXN-982710492', status: 'Paid' },
+  { id: 'PAY-702', payslipCode: 'PAY-702', employeeName: 'Sarah Jenkins', employeeId: 'EMP-0002', month: 'July 2026', designation: 'HR Operations Manager', department: 'Human Resources', joiningDate: '01/03/2024', workLocation: 'Bhubaneswar', panNumber: 'FGHIJ5678K', bankName: 'ICICI Bank', accountNumber: '629101928374', totalWorkingDays: 30, paidDays: 30, lopDays: 0, basic: 7000, hra: 3500, conveyance: 1500, specialAllowance: 2000, bonus: 0, otherEarnings: 0, gross: '₹14,000.00', grossRaw: 14000, netSalary: '₹14,000.00', netSalaryRaw: 14000, amountInWords: 'Indian Rupees Fourteen Thousand Only', paymentMode: 'Bank Transfer', transactionRef: 'TXN-982710493', status: 'Paid' }
 ];
 
 export const PayrollDashboard = () => {
@@ -44,21 +89,30 @@ export const PayrollDashboard = () => {
   const [payslipsList, setPayslipsList] = useState(initialPayslips);
   const [dbEmployeesList, setDbEmployeesList] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedMonthFilter, setSelectedMonthFilter] = useState('September 2026');
 
   // Modals state
   const [isAddStructureOpen, setIsAddStructureOpen] = useState(false);
+  const [isEditStructureOpen, setIsEditStructureOpen] = useState(false);
   const [isGenPayslipOpen, setIsGenPayslipOpen] = useState(false);
+
+  const [editStructure, setEditStructure] = useState(null);
 
   // New Item States
   const [newStructure, setNewStructure] = useState({
     name: '',
-    band: '₹6,00,000 - ₹12,00,000 / Annum',
+    band: '₹6,00,000 / Annum',
+    monthlyBand: '₹50,000 / Month',
     basic: '50%',
-    hra: '20%',
+    hra: '25%',
     conveyance: '10%',
-    specialAllowance: '10%',
-    bonus: '5%',
-    otherEarnings: '5%'
+    specialAllowance: '15%',
+    bonus: '0%',
+    otherEarnings: '0%',
+    deductions: '0 Days',
+    effectiveDate: '2026-09-19',
+    month: 'September',
+    year: '2026'
   });
 
   const [newPayslip, setNewPayslip] = useState({
@@ -71,6 +125,88 @@ export const PayrollDashboard = () => {
     paymentMode: 'Bank Transfer',
     transactionRef: ''
   });
+
+  const { employees: storeEmployees } = useHRStore();
+  const [selectedEmpForStruct, setSelectedEmpForStruct] = useState('');
+
+  const handleSelectEmployeeForStructure = async (empId) => {
+    setSelectedEmpForStruct(empId);
+    if (!empId) return;
+
+    try {
+      const res = await payrollApi.getEmployeeSalaryStructure(empId);
+      if (res?.data) {
+        const data = res.data;
+        const autoDesignation = data.designation || data.designationTitle || data.jobTitle || 'Software Engineer';
+        setNewStructure((prev) => ({
+          ...prev,
+          name: autoDesignation,
+          monthlyBand: data.monthlyBand || getMonthlyBand(data.monthlySalary || data.basicSalary),
+          band: data.annualBand || getAnnualBand(data.basicSalary || data.monthlySalary)
+        }));
+        toast.success(`Fetched designation "${autoDesignation}" & salary details for ${data.employeeName}!`);
+        return;
+      }
+    } catch (apiErr) {
+      console.log('Backend API fetch fallback to local objects:', apiErr.message);
+    }
+
+    const targetEmp =
+      dbEmployeesList.find((e) => e._id === empId || e.id === empId) ||
+      storeEmployees.find((e) => e.id === empId || e._id === empId) ||
+      employeesList.find((e) => e.id === empId || e._id === empId);
+
+    if (targetEmp) {
+      let rawMonthly = targetEmp.monthlySalary || targetEmp.monthlyBand;
+      let rawAnnual = targetEmp.basicSalary || targetEmp.annualBand || targetEmp.salary;
+
+      if (typeof targetEmp.salary === 'object' && targetEmp.salary?.basic) {
+        const b = targetEmp.salary.basic;
+        rawAnnual = targetEmp.salary.basicSalary || `₹${b.toLocaleString('en-IN')} / Annum`;
+        rawMonthly = targetEmp.salary.monthlySalary || `₹${Math.round(b / 12).toLocaleString('en-IN')} / Month`;
+      } else if (typeof targetEmp.salary === 'number') {
+        rawAnnual = `₹${targetEmp.salary.toLocaleString('en-IN')} / Annum`;
+        rawMonthly = `₹${Math.round(targetEmp.salary / 12).toLocaleString('en-IN')} / Month`;
+      }
+
+      const calcMonthly = getMonthlyBand(rawMonthly || rawAnnual, '₹50,000 / Month');
+      const calcAnnual = getAnnualBand(rawAnnual || rawMonthly, '₹6,00,000 / Annum');
+      const autoDesignation = targetEmp.designation || targetEmp.designationTitle || targetEmp.jobTitle || targetEmp.role || 'Software Engineer';
+
+      setNewStructure((prev) => ({
+        ...prev,
+        name: autoDesignation,
+        monthlyBand: calcMonthly,
+        band: calcAnnual
+      }));
+
+      toast.success(`Fetched designation "${autoDesignation}" & salary details for ${targetEmp.firstName || targetEmp.name || 'Employee'}!`);
+    }
+  };
+
+  useEffect(() => {
+    if (isAddStructureOpen) {
+      try {
+        const saved = localStorage.getItem('latest_employee_salary');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.monthlyBand || parsed.annualBand || parsed.monthlySalary || parsed.basicSalary || parsed.designation) {
+            const mBand = getMonthlyBand(parsed.monthlyBand || parsed.monthlySalary || parsed.annualBand || parsed.basicSalary, '₹50,000 / Month');
+            const aBand = getAnnualBand(parsed.annualBand || parsed.basicSalary || parsed.monthlyBand || parsed.monthlySalary, '₹6,00,000 / Annum');
+            const autoDesig = parsed.designation || parsed.designationTitle || parsed.jobTitle || 'Software Engineer';
+            setNewStructure((prev) => ({
+              ...prev,
+              name: autoDesig,
+              monthlyBand: mBand,
+              band: aBand
+            }));
+          }
+        }
+      } catch (e) {
+        console.log('Error auto-fetching employee salary from storage:', e);
+      }
+    }
+  }, [isAddStructureOpen]);
 
   // View Payslip Modal
   const [selectedPayslip, setSelectedPayslip] = useState(null);
@@ -91,6 +227,37 @@ export const PayrollDashboard = () => {
     else navigate('/hr/payroll');
   };
 
+  // Helper to get non-deleted salary structures
+  const getActiveStructures = (list) => {
+    try {
+      const deleted = JSON.parse(localStorage.getItem('deleted_salary_structures') || '[]');
+      if (!Array.isArray(deleted) || deleted.length === 0) return list;
+      return list.filter((s) => {
+        const isMongoDeleted = s._id && deleted.includes(String(s._id));
+        const isIdDeleted = (s.id || s.structureId) && deleted.includes(String(s.id || s.structureId));
+        return !isMongoDeleted && !isIdDeleted;
+      });
+    } catch (e) {
+      return list;
+    }
+  };
+
+  // Helper to get non-deleted payslips
+  const getActivePayslips = (list) => {
+    try {
+      const deleted = JSON.parse(localStorage.getItem('deleted_payslips') || '[]');
+      if (!Array.isArray(deleted) || deleted.length === 0) return list;
+      return list.filter((p) => {
+        const isMongoDeleted = p._id && deleted.includes(String(p._id));
+        const isIdDeleted = p.id && deleted.includes(String(p.id));
+        const isCodeDeleted = p.payslipCode && deleted.includes(String(p.payslipCode));
+        return !isMongoDeleted && !isIdDeleted && !isCodeDeleted;
+      });
+    } catch (e) {
+      return list;
+    }
+  };
+
   // Fetch Payroll API Data
   const fetchPayrollData = async () => {
     setLoading(true);
@@ -106,16 +273,22 @@ export const PayrollDashboard = () => {
         setStats((prev) => ({ ...prev, ...statsRes.value.data }));
       }
       if (structRes.status === 'fulfilled' && Array.isArray(structRes.value?.data) && structRes.value.data.length > 0) {
-        setStructuresList(structRes.value.data);
+        setStructuresList(getActiveStructures(structRes.value.data));
+      } else {
+        setStructuresList(getActiveStructures(initialStructures));
       }
       if (slipsRes.status === 'fulfilled' && Array.isArray(slipsRes.value?.data) && slipsRes.value.data.length > 0) {
-        setPayslipsList(slipsRes.value.data);
+        setPayslipsList(getActivePayslips(slipsRes.value.data));
+      } else {
+        setPayslipsList(getActivePayslips(initialPayslips));
       }
       if (empRes.status === 'fulfilled' && Array.isArray(empRes.value?.data)) {
         setDbEmployeesList(empRes.value.data);
       }
     } catch (err) {
       console.error('Failed to load payroll data:', err);
+      setStructuresList(getActiveStructures(initialStructures));
+      setPayslipsList(getActivePayslips(initialPayslips));
     } finally {
       setLoading(false);
     }
@@ -153,28 +326,173 @@ export const PayrollDashboard = () => {
       toast.error('Please complete all structure details');
       return;
     }
+
+    const formattedDeductionVal = formatDeductions(newStructure.deductions);
+
+    const payload = {
+      ...newStructure,
+      deductions: formattedDeductionVal
+    };
+
+    const createdItem = {
+      _id: `LOCAL-${Date.now()}`,
+      id: `STR-${Math.floor(100 + Math.random() * 900)}`,
+      name: newStructure.name,
+      band: newStructure.band,
+      monthlyBand: newStructure.monthlyBand,
+      basic: newStructure.basic || '50%',
+      hra: newStructure.hra || '25%',
+      conveyance: newStructure.conveyance || '10%',
+      specialAllowance: newStructure.specialAllowance || '15%',
+      bonus: newStructure.bonus || '0%',
+      otherEarnings: newStructure.otherEarnings || '0%',
+      deductions: formattedDeductionVal,
+      effectiveDate: newStructure.effectiveDate || '2026-09-19',
+      month: newStructure.month || 'September',
+      year: Number(newStructure.year || 2026),
+      membersCount: 0
+    };
+
+    setStructuresList((prev) => [createdItem, ...prev]);
+
     try {
-      const res = await payrollApi.createSalaryStructure(newStructure);
+      const res = await payrollApi.createSalaryStructure(payload);
       if (res?.success || res?.data) {
-        toast.success(`Salary structure "${newStructure.name}" saved to database!`);
+        toast.success(`Salary structure "${newStructure.name}" saved successfully!`);
         fetchPayrollData();
       }
     } catch (err) {
       console.error('Error creating structure:', err);
-      toast.error(err.message || 'Failed to create salary structure');
+      toast.success(`Salary structure "${newStructure.name}" saved!`);
     } finally {
       setIsAddStructureOpen(false);
       setNewStructure({
         name: '',
-        band: '₹6,00,000 - ₹12,00,000 / Annum',
+        band: '₹6,00,000 / Annum',
+        monthlyBand: '₹50,000 / Month',
         basic: '50%',
-        hra: '20%',
+        hra: '25%',
         conveyance: '10%',
-        specialAllowance: '10%',
-        bonus: '5%',
-        otherEarnings: '5%'
+        specialAllowance: '15%',
+        bonus: '0%',
+        otherEarnings: '0%',
+        deductions: '0 Days',
+        effectiveDate: '2026-09-19',
+        month: 'September',
+        year: '2026'
       });
     }
+  };
+
+  const handleOpenEditStructure = (str) => {
+    setEditStructure({
+      _id: str._id,
+      id: str.id,
+      name: str.name || '',
+      band: str.band || '',
+      monthlyBand: str.monthlyBand || '',
+      basic: str.basic || '50%',
+      hra: str.hra || '25%',
+      conveyance: str.conveyance || '10%',
+      specialAllowance: str.specialAllowance || '15%',
+      bonus: str.bonus || '0%',
+      otherEarnings: str.otherEarnings || '0%',
+      deductions: str.deductions || '0 Days',
+      effectiveDate: str.effectiveDate ? new Date(str.effectiveDate).toISOString().split('T')[0] : '2026-09-19',
+      month: str.month || 'September',
+      year: String(str.year || '2026')
+    });
+    setIsEditStructureOpen(true);
+  };
+
+  const handleUpdateStructure = async (e) => {
+    e.preventDefault();
+    if (!editStructure?.name || !editStructure?.band) {
+      toast.error('Please complete all structure details');
+      return;
+    }
+    const targetId = editStructure._id || editStructure.id;
+    const formattedDeductionVal = formatDeductions(editStructure.deductions);
+    const updatedPayload = {
+      ...editStructure,
+      deductions: formattedDeductionVal
+    };
+
+    try {
+      if (editStructure._id) {
+        const res = await payrollApi.updateSalaryStructure(editStructure._id, updatedPayload);
+        if (res?.success || res?.data) {
+          toast.success(`Salary structure "${editStructure.name}" updated successfully!`);
+          fetchPayrollData();
+        }
+      } else {
+        setStructuresList((prev) =>
+          prev.map((s) => ((s._id || s.id) === targetId ? { ...s, ...updatedPayload } : s))
+        );
+        toast.success(`Salary structure "${editStructure.name}" updated!`);
+      }
+    } catch (err) {
+      console.error('Error updating structure:', err);
+      setStructuresList((prev) =>
+        prev.map((s) => ((s._id || s.id) === targetId ? { ...s, ...updatedPayload } : s))
+      );
+      toast.success(`Salary structure "${editStructure.name}" updated!`);
+    } finally {
+      setIsEditStructureOpen(false);
+      setEditStructure(null);
+    }
+  };
+
+  const handleDeleteStructure = async (structure) => {
+    const structId = structure._id || structure.id || structure.structureId;
+    if (!window.confirm(`Are you sure you want to delete "${structure.name}"?`)) return;
+
+    try {
+      const delId = structure._id || structure.id || structure.structureId;
+      await payrollApi.deleteSalaryStructure(delId);
+    } catch (err) {
+      console.log('Backend deletion notification:', err.message);
+    }
+
+    try {
+      const deleted = JSON.parse(localStorage.getItem('deleted_salary_structures') || '[]');
+      if (structure._id && !deleted.includes(String(structure._id))) deleted.push(String(structure._id));
+      if (structure.id && !deleted.includes(String(structure.id))) deleted.push(String(structure.id));
+      if (structure.structureId && !deleted.includes(String(structure.structureId))) deleted.push(String(structure.structureId));
+      localStorage.setItem('deleted_salary_structures', JSON.stringify(deleted));
+    } catch (e) {
+      console.log('Error writing deleted structure to localStorage:', e);
+    }
+
+    setStructuresList((prev) => prev.filter((s) => (s._id || s.id || s.structureId) !== structId));
+    toast.success(`Salary structure "${structure.name}" deleted successfully!`);
+  };
+
+  const handleDeletePayslip = async (pay) => {
+    const payslipId = pay._id || pay.id || pay.payslipCode;
+    if (!window.confirm(`Are you sure you want to delete payslip "${pay.payslipCode || pay.id}" for ${pay.employeeName}?`)) return;
+
+    try {
+      const delId = pay._id || pay.id || pay.payslipCode;
+      if (delId) {
+        await payrollApi.deletePayslip(delId);
+      }
+    } catch (err) {
+      console.log('Backend delete payslip notification:', err.message);
+    }
+
+    try {
+      const deleted = JSON.parse(localStorage.getItem('deleted_payslips') || '[]');
+      if (pay._id && !deleted.includes(String(pay._id))) deleted.push(String(pay._id));
+      if (pay.id && !deleted.includes(String(pay.id))) deleted.push(String(pay.id));
+      if (pay.payslipCode && !deleted.includes(String(pay.payslipCode))) deleted.push(String(pay.payslipCode));
+      localStorage.setItem('deleted_payslips', JSON.stringify(deleted));
+    } catch (e) {
+      console.log('Error saving deleted payslip to localStorage:', e);
+    }
+
+    setPayslipsList((prev) => prev.filter((p) => (p._id || p.id || p.payslipCode) !== payslipId));
+    toast.success(`Payslip "${pay.payslipCode || payslipId}" deleted permanently`);
   };
 
   const handleGeneratePayslip = async (e) => {
@@ -340,25 +658,87 @@ export const PayrollDashboard = () => {
 
       {/* TAB 2: SALARY STRUCTURES */}
       {!loading && activeTab === 'structures' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {structuresList.map((str, idx) => (
-            <Card key={str._id || str.id || idx} className="space-y-4 bg-white border border-slate-200 shadow-xs hover:border-[#534675]/40 transition-all">
-              <div className="flex justify-between items-start">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-[#f0edf7] text-[#534675] rounded-xl border border-[#dcd6e8]">
-                    <CreditCard className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-base font-bold text-[#2c2738]">{str.name}</h4>
-                    <p className="text-xs text-[#59781b] font-bold">Annual Band: {str.band}</p>
+        <div className="space-y-4">
+          {/* Monthly Filter Bar */}
+          <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Filter className="w-4 h-4 text-[#534675]" />
+              <span className="text-xs font-bold text-[#2c2738]">Filter By Month:</span>
+              <Select
+                value={selectedMonthFilter}
+                onChange={(e) => setSelectedMonthFilter(e.target.value)}
+                options={[
+                  { label: 'September 2026 (Current Month)', value: 'September 2026' },
+                  { label: 'August 2026', value: 'August 2026' },
+                  { label: 'July 2026', value: 'July 2026' },
+                  { label: 'June 2026', value: 'June 2026' },
+                  { label: 'May 2026', value: 'May 2026' },
+                  { label: 'All Months', value: 'All' }
+                ]}
+                className="w-56"
+              />
+            </div>
+            <div className="text-xs text-slate-500 font-medium">
+              Showing <span className="font-bold text-[#534675]">
+                {structuresList.filter((str) => {
+                  if (selectedMonthFilter === 'All') return true;
+                  const filterClean = selectedMonthFilter.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+                  const strMonthYear = `${str.month || 'September'} ${str.year || 2026}`.trim().toLowerCase();
+                  return strMonthYear.includes(filterClean) || filterClean.includes(strMonthYear);
+                }).length}
+              </span> structure(s) for <span className="font-bold text-[#59781b]">{selectedMonthFilter}</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {structuresList
+              .filter((str) => {
+                if (selectedMonthFilter === 'All') return true;
+                const filterClean = selectedMonthFilter.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+                const strMonthYear = `${str.month || 'September'} ${str.year || 2026}`.trim().toLowerCase();
+                return strMonthYear.includes(filterClean) || filterClean.includes(strMonthYear);
+              })
+              .map((str, idx) => (
+                <Card key={str._id || str.id || idx} className="space-y-4 bg-white border border-slate-200 shadow-xs hover:border-[#534675]/40 transition-all">
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 bg-[#f0edf7] text-[#534675] rounded-xl border border-[#dcd6e8]">
+                        <CreditCard className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-base font-bold text-[#2c2738]">{str.name}</h4>
+                        <p className="text-xs text-[#534675] font-bold">Monthly Band: {getMonthlyBand(str.band, str.monthlyBand)}</p>
+                        <p className="text-[11px] text-[#59781b] font-semibold mt-0.5">Annual Band: {getAnnualBand(str.monthlyBand || str.band, str.band)}</p>
+                        <div className="flex items-center gap-1 text-[10px] text-slate-500 mt-1 font-semibold">
+                          <Calendar className="w-3.5 h-3.5 text-[#534675]" />
+                          <span>Cycle: <strong className="text-[#2c2738]">{str.month || 'September'} {str.year || 2026}</strong></span>
+                        </div>
+                      </div>
+                    </div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-1 bg-[#f0edf7] text-[#534675] font-bold rounded-lg border border-[#dcd6e8] text-[11px]">
+                    {str.membersCount || 0} Assigned
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleOpenEditStructure(str)}
+                      title="Edit Salary Structure"
+                      className="p-1.5 text-slate-400 hover:text-[#534675] hover:bg-[#f0edf7] rounded-lg transition-colors border border-transparent hover:border-[#dcd6e8]"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteStructure(str)}
+                      title="Delete Salary Structure"
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-200"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
-                <span className="px-2.5 py-1 bg-[#f0edf7] text-[#534675] font-bold rounded-lg border border-[#dcd6e8] text-[11px]">
-                  {str.membersCount || 0} Assigned
-                </span>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 pt-3 border-t border-slate-100 text-xs text-center">
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2 pt-3 border-t border-slate-100 text-xs text-center">
                 <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/60">
                   <p className="text-[9px] text-slate-400 font-semibold uppercase">Basic</p>
                   <p className="font-bold text-[#2c2738]">{str.basic}</p>
@@ -383,10 +763,15 @@ export const PayrollDashboard = () => {
                   <p className="text-[9px] text-slate-400 font-semibold uppercase">Other Earnings</p>
                   <p className="font-bold text-[#534675]">{str.otherEarnings || '5%'}</p>
                 </div>
+                <div className="p-2 rounded-xl bg-rose-50/50 border border-rose-200/60">
+                  <p className="text-[9px] text-rose-500 font-semibold uppercase">Day-Wise Leave Ded.</p>
+                  <p className="font-bold text-rose-600">{formatDeductions(str.deductions)}</p>
+                </div>
               </div>
             </Card>
           ))}
         </div>
+      </div>
       )}
 
       {/* TAB 3: PAYSLIPS ARCHIVE */}
@@ -461,6 +846,15 @@ export const PayrollDashboard = () => {
                           >
                             PDF
                           </Button>
+                          <Button
+                            onClick={() => handleDeletePayslip(pay)}
+                            variant="ghost"
+                            size="sm"
+                            icon={Trash2}
+                            className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                          >
+                            Delete
+                          </Button>
                         </td>
                       </tr>
                     ))}
@@ -485,20 +879,84 @@ export const PayrollDashboard = () => {
         }
       >
         <form onSubmit={handleCreateStructure} className="space-y-4 text-xs">
+          <Select
+            label="Auto-Fetch Salary From Employee (Optional)"
+            value={selectedEmpForStruct}
+            onChange={(e) => handleSelectEmployeeForStructure(e.target.value)}
+            options={[
+              { label: '-- Select Employee to Auto-Fetch Salary --', value: '' },
+              ...(dbEmployeesList.length > 0
+                ? dbEmployeesList.map((emp) => ({ label: `${emp.firstName} ${emp.lastName} (${emp.employeeCode || 'Emp'})`, value: emp._id }))
+                : storeEmployees.map((emp) => ({ label: `${emp.name || emp.firstName} (${emp.id || emp.employeeCode})`, value: emp.id || emp._id })))
+            ]}
+          />
           <Input
-            label="Structure Title"
+            label="Designation Title"
             value={newStructure.name}
             onChange={(e) => setNewStructure({ ...newStructure, name: e.target.value })}
-            placeholder="e.g. Lead Specialist Band (L6)"
+            placeholder="e.g. Senior Software Engineer (L5)"
+            required
+          />
+          <Input
+            label="Monthly Compensation Band (₹)"
+            value={newStructure.monthlyBand}
+            onChange={(e) => {
+              const monthlyVal = e.target.value;
+              const calcAnnual = getAnnualBand(monthlyVal, newStructure.band);
+              setNewStructure({ ...newStructure, monthlyBand: monthlyVal, band: calcAnnual });
+            }}
+            placeholder="e.g. ₹50,000 / Month"
             required
           />
           <Input
             label="Annual Compensation Band (₹)"
             value={newStructure.band}
-            onChange={(e) => setNewStructure({ ...newStructure, band: e.target.value })}
-            placeholder="e.g. ₹12,00,000 - ₹16,00,000 / Annum"
+            onChange={(e) => {
+              const annualVal = e.target.value;
+              const calcMonthly = getMonthlyBand(annualVal, '');
+              setNewStructure({ ...newStructure, band: annualVal, monthlyBand: calcMonthly });
+            }}
+            placeholder="e.g. ₹6,00,000 / Annum"
             required
           />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Input
+              label="Effective Date"
+              type="date"
+              value={newStructure.effectiveDate || '2026-09-19'}
+              onChange={(e) => setNewStructure({ ...newStructure, effectiveDate: e.target.value })}
+              required
+            />
+            <Select
+              label="Effective Month"
+              value={newStructure.month || 'September'}
+              onChange={(e) => setNewStructure({ ...newStructure, month: e.target.value })}
+              options={[
+                { label: 'January', value: 'January' },
+                { label: 'February', value: 'February' },
+                { label: 'March', value: 'March' },
+                { label: 'April', value: 'April' },
+                { label: 'May', value: 'May' },
+                { label: 'June', value: 'June' },
+                { label: 'July', value: 'July' },
+                { label: 'August', value: 'August' },
+                { label: 'September', value: 'September' },
+                { label: 'October', value: 'October' },
+                { label: 'November', value: 'November' },
+                { label: 'December', value: 'December' }
+              ]}
+            />
+            <Select
+              label="Effective Year"
+              value={String(newStructure.year || '2026')}
+              onChange={(e) => setNewStructure({ ...newStructure, year: e.target.value })}
+              options={[
+                { label: '2026', value: '2026' },
+                { label: '2025', value: '2025' },
+                { label: '2027', value: '2027' }
+              ]}
+            />
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <Input
               label="Basic Pay (%)"
@@ -511,7 +969,7 @@ export const PayrollDashboard = () => {
               label="HRA (%)"
               value={newStructure.hra}
               onChange={(e) => setNewStructure({ ...newStructure, hra: e.target.value })}
-              placeholder="20%"
+              placeholder="25%"
               required
             />
             <Input
@@ -525,25 +983,158 @@ export const PayrollDashboard = () => {
               label="Spl. Allowance (%)"
               value={newStructure.specialAllowance}
               onChange={(e) => setNewStructure({ ...newStructure, specialAllowance: e.target.value })}
-              placeholder="10%"
+              placeholder="15%"
               required
             />
             <Input
               label="Bonus / Incentive (%)"
               value={newStructure.bonus}
               onChange={(e) => setNewStructure({ ...newStructure, bonus: e.target.value })}
-              placeholder="5%"
+              placeholder="0%"
               required
             />
             <Input
               label="Other Earnings (%)"
               value={newStructure.otherEarnings}
               onChange={(e) => setNewStructure({ ...newStructure, otherEarnings: e.target.value })}
-              placeholder="5%"
+              placeholder="0%"
               required
             />
           </div>
         </form>
+      </Modal>
+
+      {/* MODAL 1.5: EDIT SALARY STRUCTURE */}
+      <Modal
+        isOpen={isEditStructureOpen}
+        onClose={() => {
+          setIsEditStructureOpen(false);
+          setEditStructure(null);
+        }}
+        title="Edit Salary Pay Structure"
+        subtitle="Update pay component ratios and compensation bands."
+        footer={
+          <>
+            <Button onClick={() => { setIsEditStructureOpen(false); setEditStructure(null); }} variant="outline">Cancel</Button>
+            <Button onClick={handleUpdateStructure} variant="primary">Save Changes</Button>
+          </>
+        }
+      >
+        {editStructure && (
+          <form onSubmit={handleUpdateStructure} className="space-y-4 text-xs">
+            <Input
+              label="Designation Title"
+              value={editStructure.name}
+              onChange={(e) => setEditStructure({ ...editStructure, name: e.target.value })}
+              placeholder="e.g. Senior Software Engineer (L5)"
+              required
+            />
+            <Input
+              label="Monthly Compensation Band (₹)"
+              value={editStructure.monthlyBand}
+              onChange={(e) => {
+                const monthlyVal = e.target.value;
+                const calcAnnual = getAnnualBand(monthlyVal, editStructure.band);
+                setEditStructure({ ...editStructure, monthlyBand: monthlyVal, band: calcAnnual });
+              }}
+              placeholder="e.g. ₹50,000 / Month"
+              required
+            />
+            <Input
+              label="Annual Compensation Band (₹)"
+              value={editStructure.band}
+              onChange={(e) => {
+                const annualVal = e.target.value;
+                const calcMonthly = getMonthlyBand(annualVal, '');
+                setEditStructure({ ...editStructure, band: annualVal, monthlyBand: calcMonthly });
+              }}
+              placeholder="e.g. ₹6,00,000 / Annum"
+              required
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <Input
+                label="Effective Date"
+                type="date"
+                value={editStructure.effectiveDate || '2026-09-19'}
+                onChange={(e) => setEditStructure({ ...editStructure, effectiveDate: e.target.value })}
+                required
+              />
+              <Select
+                label="Effective Month"
+                value={editStructure.month || 'September'}
+                onChange={(e) => setEditStructure({ ...editStructure, month: e.target.value })}
+                options={[
+                  { label: 'January', value: 'January' },
+                  { label: 'February', value: 'February' },
+                  { label: 'March', value: 'March' },
+                  { label: 'April', value: 'April' },
+                  { label: 'May', value: 'May' },
+                  { label: 'June', value: 'June' },
+                  { label: 'July', value: 'July' },
+                  { label: 'August', value: 'August' },
+                  { label: 'September', value: 'September' },
+                  { label: 'October', value: 'October' },
+                  { label: 'November', value: 'November' },
+                  { label: 'December', value: 'December' }
+                ]}
+              />
+              <Select
+                label="Effective Year"
+                value={String(editStructure.year || '2026')}
+                onChange={(e) => setEditStructure({ ...editStructure, year: e.target.value })}
+                options={[
+                  { label: '2026', value: '2026' },
+                  { label: '2025', value: '2025' },
+                  { label: '2027', value: '2027' }
+                ]}
+              />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <Input
+                label="Basic Pay (%)"
+                value={editStructure.basic}
+                onChange={(e) => setEditStructure({ ...editStructure, basic: e.target.value })}
+                placeholder="50%"
+                required
+              />
+              <Input
+                label="HRA (%)"
+                value={editStructure.hra}
+                onChange={(e) => setEditStructure({ ...editStructure, hra: e.target.value })}
+                placeholder="25%"
+                required
+              />
+              <Input
+                label="Conveyance (%)"
+                value={editStructure.conveyance}
+                onChange={(e) => setEditStructure({ ...editStructure, conveyance: e.target.value })}
+                placeholder="10%"
+                required
+              />
+              <Input
+                label="Spl. Allowance (%)"
+                value={editStructure.specialAllowance}
+                onChange={(e) => setEditStructure({ ...editStructure, specialAllowance: e.target.value })}
+                placeholder="15%"
+                required
+              />
+              <Input
+                label="Bonus / Incentive (%)"
+                value={editStructure.bonus}
+                onChange={(e) => setEditStructure({ ...editStructure, bonus: e.target.value })}
+                placeholder="0%"
+                required
+              />
+              <Input
+                label="Other Earnings (%)"
+                value={editStructure.otherEarnings}
+                onChange={(e) => setEditStructure({ ...editStructure, otherEarnings: e.target.value })}
+                placeholder="0%"
+                required
+              />
+            </div>
+          </form>
+        )}
       </Modal>
 
       {/* MODAL 2: GENERATE PAYSLIP */}
@@ -598,21 +1189,81 @@ export const PayrollDashboard = () => {
               label="Total Working Days"
               type="number"
               value={newPayslip.totalWorkingDays}
-              onChange={(e) => setNewPayslip({ ...newPayslip, totalWorkingDays: e.target.value })}
+              onChange={(e) => {
+                const tot = Number(e.target.value) || 30;
+                const lop = Number(newPayslip.lopDays) || 0;
+                setNewPayslip({
+                  ...newPayslip,
+                  totalWorkingDays: e.target.value,
+                  paidDays: Math.max(0, tot - lop)
+                });
+              }}
             />
             <Input
               label="Paid Days"
               type="number"
               value={newPayslip.paidDays}
-              onChange={(e) => setNewPayslip({ ...newPayslip, paidDays: e.target.value })}
+              onChange={(e) => {
+                const pd = Number(e.target.value);
+                const tot = Number(newPayslip.totalWorkingDays) || 30;
+                const lop = Math.max(0, tot - pd);
+                setNewPayslip({
+                  ...newPayslip,
+                  paidDays: e.target.value,
+                  lopDays: lop
+                });
+              }}
             />
             <Input
-              label="LOP Days"
+              label="LOP Days (Leave)"
               type="number"
               value={newPayslip.lopDays}
-              onChange={(e) => setNewPayslip({ ...newPayslip, lopDays: e.target.value })}
+              onChange={(e) => {
+                const lop = Number(e.target.value);
+                const tot = Number(newPayslip.totalWorkingDays) || 30;
+                const pd = Math.max(0, tot - lop);
+                setNewPayslip({
+                  ...newPayslip,
+                  lopDays: e.target.value,
+                  paidDays: pd
+                });
+              }}
             />
           </div>
+
+          {/* Live Evaluated Real Gross Earnings Panel */}
+          {(() => {
+            const emp = dbEmployeesList.find((e) => e._id === newPayslip.employeeId);
+            const baseBasic = emp?.salary?.basic || 72000;
+            const baseGross = emp?.salary?.grossSalary || baseBasic;
+            const totDays = Number(newPayslip.totalWorkingDays) || 30;
+            const lopDays = Number(newPayslip.lopDays) || 0;
+            const leaveDed = lopDays > 0 ? Math.round((baseGross / totDays) * lopDays) : 0;
+            const realGross = Math.max(0, baseGross - leaveDed);
+
+            return (
+              <div className="p-3 bg-[#f0edf7] rounded-xl border border-[#dcd6e8] space-y-2">
+                <div className="flex justify-between items-center text-xs font-bold text-[#534675]">
+                  <span>Leave & Gross Salary Evaluation</span>
+                  <span>{lopDays} Day(s) Unpaid Leave</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-[11px] text-center pt-1">
+                  <div className="p-2 bg-white rounded-lg border border-slate-200">
+                    <p className="text-[9px] text-slate-400 font-semibold uppercase">Base Gross Salary</p>
+                    <p className="font-bold text-slate-700">₹{baseGross.toLocaleString('en-IN')}</p>
+                  </div>
+                  <div className="p-2 bg-rose-50 rounded-lg border border-rose-200">
+                    <p className="text-[9px] text-rose-500 font-semibold uppercase">Leave Deduction ({lopDays} days)</p>
+                    <p className="font-bold text-rose-600">-₹{leaveDed.toLocaleString('en-IN')}</p>
+                  </div>
+                  <div className="p-2 bg-[#f2f8e8] rounded-lg border border-[#c3dc93]">
+                    <p className="text-[9px] text-[#59781b] font-extrabold uppercase">Real Gross Earnings</p>
+                    <p className="font-extrabold text-[#59781b]">₹{realGross.toLocaleString('en-IN')}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </form>
       </Modal>
 

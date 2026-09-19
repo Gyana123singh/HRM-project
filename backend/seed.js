@@ -67,10 +67,10 @@ const seedData = async () => {
 
     console.log('[Seeder] Seeding Salary Structures...');
     await SalaryStructure.create([
-      { structureId: 'STR-01', name: 'Executive Level (L7)', band: '₹18,00,000 - ₹30,00,000 / Annum', basic: '50%', hra: '20%', conveyance: '10%', specialAllowance: '10%', bonus: '5%', otherEarnings: '5%', deductions: '10%', membersCount: 5, status: 'Active' },
-      { structureId: 'STR-02', name: 'Senior Engineering (L5)', band: '₹12,00,000 - ₹18,00,000 / Annum', basic: '50%', hra: '20%', conveyance: '10%', specialAllowance: '10%', bonus: '5%', otherEarnings: '5%', deductions: '10%', membersCount: 18, status: 'Active' },
-      { structureId: 'STR-03', name: 'Mid-Level Professional (L4)', band: '₹6,00,000 - ₹12,00,000 / Annum', basic: '50%', hra: '20%', conveyance: '10%', specialAllowance: '10%', bonus: '5%', otherEarnings: '5%', deductions: '10%', membersCount: 42, status: 'Active' },
-      { structureId: 'STR-04', name: 'Associate Band (L2-L3)', band: '₹3,50,000 - ₹6,00,000 / Annum', basic: '50%', hra: '20%', conveyance: '10%', specialAllowance: '10%', bonus: '5%', otherEarnings: '5%', deductions: '10%', membersCount: 25, status: 'Active' }
+      { structureId: 'STR-01', name: 'Executive Level (L7)', band: '₹18,00,000 - ₹30,00,000 / Annum', monthlyBand: '₹1,50,000 - ₹2,50,000 / Month', basic: '50%', hra: '25%', conveyance: '₹1,500', specialAllowance: '₹2,000', bonus: '0%', otherEarnings: '0%', deductions: '0%', membersCount: 5, status: 'Active' },
+      { structureId: 'STR-02', name: 'Senior Engineering (L5)', band: '₹12,00,000 - ₹18,00,000 / Annum', monthlyBand: '₹1,00,000 - ₹1,50,000 / Month', basic: '50%', hra: '25%', conveyance: '₹1,500', specialAllowance: '₹2,000', bonus: '0%', otherEarnings: '0%', deductions: '0%', membersCount: 18, status: 'Active' },
+      { structureId: 'STR-03', name: 'Mid-Level Professional (L4)', band: '₹6,00,000 - ₹12,00,000 / Annum', monthlyBand: '₹50,000 - ₹1,00,000 / Month', basic: '50%', hra: '25%', conveyance: '₹1,500', specialAllowance: '₹2,000', bonus: '0%', otherEarnings: '0%', deductions: '0%', membersCount: 42, status: 'Active' },
+      { structureId: 'STR-04', name: 'Associate Band (L2-L3)', band: '₹3,50,000 - ₹6,00,000 / Annum', monthlyBand: '₹29,167 - ₹50,000 / Month', basic: '50%', hra: '25%', conveyance: '₹1,500', specialAllowance: '₹2,000', bonus: '0%', otherEarnings: '0%', deductions: '0%', membersCount: 25, status: 'Active' }
     ]);
 
     console.log('[Seeder] Seeding Branch Offices...');
@@ -117,13 +117,13 @@ const seedData = async () => {
       bankName: 'HDFC Bank',
       accountNumber: '5010049281723',
       salary: {
-        basic: 35000,
-        hra: 14000,
-        conveyance: 3000,
-        specialAllowance: 5000,
-        bonus: 2000,
-        otherEarnings: 1000,
-        deductions: 4000
+        basic: 7000,
+        hra: 3500,
+        conveyance: 1500,
+        specialAllowance: 2000,
+        bonus: 0,
+        otherEarnings: 0,
+        deductions: 0
       }
     });
 
@@ -155,13 +155,13 @@ const seedData = async () => {
       bankName: 'ICICI Bank',
       accountNumber: '629101928374',
       salary: {
-        basic: 40000,
-        hra: 16000,
-        conveyance: 3500,
-        specialAllowance: 6000,
-        bonus: 2500,
-        otherEarnings: 1500,
-        deductions: 4500
+        basic: 7000,
+        hra: 3500,
+        conveyance: 1500,
+        specialAllowance: 2000,
+        bonus: 0,
+        otherEarnings: 0,
+        deductions: 0
       }
     });
 
@@ -194,13 +194,13 @@ const seedData = async () => {
       bankName: 'State Bank of India',
       accountNumber: '38192019283',
       salary: {
-        basic: 45000,
-        hra: 18000,
-        conveyance: 4000,
-        specialAllowance: 7000,
-        bonus: 3000,
-        otherEarnings: 2000,
-        deductions: 5000
+        basic: 7000,
+        hra: 3500,
+        conveyance: 1500,
+        specialAllowance: 2000,
+        bonus: 0,
+        otherEarnings: 0,
+        deductions: 0
       }
     });
 
@@ -229,16 +229,16 @@ const seedData = async () => {
         totalWorkingDays: 30,
         paidDays: 30,
         lopDays: 0,
-        basic: 35000,
-        hra: 14000,
-        conveyance: 3000,
-        specialAllowance: 5000,
-        bonus: 2000,
-        otherEarnings: 1000,
-        grossSalary: 60000,
-        deductions: { tax: 3000, providentFund: 4200, other: 1000, totalDeductions: 8200 },
-        netSalary: 51800,
-        amountInWords: 'Indian Rupees Fifty One Thousand Eight Hundred Only',
+        basic: 7000,
+        hra: 3500,
+        conveyance: 1500,
+        specialAllowance: 2000,
+        bonus: 0,
+        otherEarnings: 0,
+        grossSalary: 14000,
+        deductions: { tax: 0, providentFund: 0, unpaidLeaves: 0, totalDeductions: 0 },
+        netSalary: 14000,
+        amountInWords: 'Indian Rupees Fourteen Thousand Only',
         paymentMode: 'Bank Transfer',
         transactionRef: 'TXN-982710492',
         paymentStatus: 'Paid'
@@ -255,16 +255,16 @@ const seedData = async () => {
         totalWorkingDays: 30,
         paidDays: 30,
         lopDays: 0,
-        basic: 40000,
-        hra: 16000,
-        conveyance: 3500,
-        specialAllowance: 6000,
-        bonus: 2500,
-        otherEarnings: 1500,
-        grossSalary: 69500,
-        deductions: { tax: 3475, providentFund: 4800, other: 1225, totalDeductions: 9500 },
-        netSalary: 60000,
-        amountInWords: 'Indian Rupees Sixty Thousand Only',
+        basic: 7000,
+        hra: 3500,
+        conveyance: 1500,
+        specialAllowance: 2000,
+        bonus: 0,
+        otherEarnings: 0,
+        grossSalary: 14000,
+        deductions: { tax: 0, providentFund: 0, unpaidLeaves: 0, totalDeductions: 0 },
+        netSalary: 14000,
+        amountInWords: 'Indian Rupees Fourteen Thousand Only',
         paymentMode: 'Bank Transfer',
         transactionRef: 'TXN-982710493',
         paymentStatus: 'Paid'

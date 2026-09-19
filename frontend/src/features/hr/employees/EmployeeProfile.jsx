@@ -39,7 +39,7 @@ export const EmployeeProfile = () => {
             branch: emp.address?.city || 'Headquarters',
             status: emp.status || 'Active',
             joinDate: emp.joiningDate ? new Date(emp.joiningDate).toISOString().split('T')[0] : '2024-01-15',
-            salary: emp.salary?.basic ? `$${emp.salary.basic.toLocaleString()}` : '$85,000',
+            salary: emp.salary?.basicSalary ? `$${emp.salary.basicSalary}` : emp.salary?.annualBand ? emp.salary.annualBand : emp.salary?.basic ? `$${emp.salary.basic.toLocaleString()}` : '$72,000',
             performanceRating: '4.9/5',
             employmentType: emp.employmentType || 'Full-time',
             manager: emp.managerId ? `${emp.managerId.firstName || ''} ${emp.managerId.lastName || ''}` : 'Sarah Jenkins (HR Manager)',

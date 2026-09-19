@@ -43,7 +43,7 @@ export const useHRStore = create((set, get) => ({
 
   deleteEmployee: (id) => {
     set((state) => ({
-      employees: state.employees.filter((emp) => emp.id !== id)
+      employees: state.employees.filter((emp) => emp.id !== id && emp._id !== id && emp.employeeCode !== id)
     }));
   },
 

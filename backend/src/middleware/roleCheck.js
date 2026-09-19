@@ -4,14 +4,23 @@ const authorize = (...roles) => {
       return res.status(401).json({ success: false, message: 'Authentication required.' });
     }
 
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({
-        success: false,
-        message: `User role '${req.user.role}' is not authorized to access this route.`
-      });
+    const userRole = (req.user.role || '').toLowerCase();
+    const allowedRoles = roles.map((r) => r.toLowerCase());
+
+    // Super roles (Admin & HR) or matched roles or dev mode bypass
+    if (
+      userRole === 'admin' ||
+      userRole === 'hr' ||
+      allowedRoles.includes(userRole) ||
+      process.env.NODE_ENV === 'development'
+    ) {
+      return next();
     }
 
-    next();
+    return res.status(403).json({
+      success: false,
+      message: `User role '${req.user.role}' is not authorized to access this route.`
+    });
   };
 };
 

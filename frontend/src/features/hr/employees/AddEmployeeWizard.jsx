@@ -6,14 +6,12 @@ import { Button } from '../../../components/ui/Button';
 import { useHRStore } from '../../../store/hrStore';
 import { employeeApi, authApi, organizationApi } from '../../../api';
 import { useNavigate } from 'react-router-dom';
-import { Check, ArrowRight, ArrowLeft, Save, Upload, FileText, ExternalLink, X, Loader2 } from 'lucide-react';
+import { Check, ArrowRight, ArrowLeft, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export const AddEmployeeWizard = () => {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadedDocuments, setUploadedDocuments] = useState([]);
   const [deptOptions, setDeptOptions] = useState([]);
   const [branchOptions, setBranchOptions] = useState([]);
   const { addEmployee: addStoreEmp } = useHRStore();
@@ -31,11 +29,106 @@ export const AddEmployeeWizard = () => {
     branch: 'Global Headquarters',
     joinDate: new Date().toISOString().split('T')[0],
     employmentType: 'Full-time',
-    basicSalary: '85000',
+    monthlySalary: '7,083.33',
+    basicSalary: '85,000.00',
     role: 'Employee',
     bankName: 'Chase Bank',
-    accountNumber: '8849-201-4421'
+    accountNumber: '8849-201-4421',
+    ifscCode: 'CHAS000981',
+    education: '',
+    previousEmployer: '',
+    experienceYears: ''
   });
+
+  const handleMonthlySalaryChange = (val) => {
+    const cleanVal = val.replace(/[^0-9.]/g, '');
+    if (cleanVal === '') {
+      setFormData((prev) => ({ ...prev, monthlySalary: '', basicSalary: '' }));
+      return;
+    }
+
+    const parts = cleanVal.split('.');
+    const integerPart = parts[0] ? parseFloat(parts[0]).toLocaleString('en-US') : '';
+    const decimalPart = parts.length > 1 ? `.${parts[1]}` : '';
+    const formattedMonthlyInput = integerPart ? `${integerPart}${decimalPart}` : val;
+
+    const num = parseFloat(cleanVal);
+    if (!isNaN(num)) {
+      const annual = num * 12;
+      const formattedAnnual = annual.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+      setFormData((prev) => ({
+        ...prev,
+        monthlySalary: formattedMonthlyInput,
+        basicSalary: formattedAnnual
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, monthlySalary: val }));
+    }
+  };
+
+  const handleAnnualSalaryChange = (val) => {
+    const cleanVal = val.replace(/[^0-9.]/g, '');
+    if (cleanVal === '') {
+      setFormData((prev) => ({ ...prev, basicSalary: '', monthlySalary: '' }));
+      return;
+    }
+
+    const parts = cleanVal.split('.');
+    const integerPart = parts[0] ? parseFloat(parts[0]).toLocaleString('en-US') : '';
+    const decimalPart = parts.length > 1 ? `.${parts[1]}` : '';
+    const formattedAnnualInput = integerPart ? `${integerPart}${decimalPart}` : val;
+
+    const num = parseFloat(cleanVal);
+    if (!isNaN(num)) {
+      const monthly = num / 12;
+      const formattedMonthly = monthly.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+      setFormData((prev) => ({
+        ...prev,
+        basicSalary: formattedAnnualInput,
+        monthlySalary: formattedMonthly
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, basicSalary: val }));
+    }
+  };
+
+  const handleMonthlyBlur = () => {
+    if (formData.monthlySalary) {
+      const clean = String(formData.monthlySalary).replace(/[^0-9.]/g, '');
+      const num = parseFloat(clean);
+      if (!isNaN(num)) {
+        setFormData((prev) => ({
+          ...prev,
+          monthlySalary: num.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          })
+        }));
+      }
+    }
+  };
+
+  const handleAnnualBlur = () => {
+    if (formData.basicSalary) {
+      const clean = String(formData.basicSalary).replace(/[^0-9.]/g, '');
+      const num = parseFloat(clean);
+      if (!isNaN(num)) {
+        setFormData((prev) => ({
+          ...prev,
+          basicSalary: num.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          })
+        }));
+      }
+    }
+  };
 
   useEffect(() => {
     const loadOrgOptions = async () => {
@@ -61,52 +154,13 @@ export const AddEmployeeWizard = () => {
     loadOrgOptions();
   }, []);
 
-  const handleNext = () => setStep((s) => Math.min(s + 1, 5));
+  const handleNext = () => setStep((s) => Math.min(s + 1, 4));
   const handlePrev = () => setStep((s) => Math.max(s - 1, 1));
 
-  const handleFileUpload = async (e) => {
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
+  const handleFinalSubmit = async (e) => {
+    if (e) e.preventDefault();
+    if (step !== 4) return;
 
-    setIsUploading(true);
-
-    for (const file of files) {
-      const fileFormData = new FormData();
-      fileFormData.append('document', file);
-
-      try {
-        const res = await employeeApi.uploadDocument(fileFormData);
-        if (res && res.data) {
-          const newDoc = {
-            name: res.data.name || file.name,
-            url: res.data.url,
-            publicId: res.data.publicId
-          };
-          setUploadedDocuments((prev) => [...prev, newDoc]);
-          toast.success(`Uploaded ${file.name}`);
-        }
-      } catch (err) {
-        const localDoc = {
-          name: file.name,
-          url: URL.createObjectURL(file),
-          publicId: `local_${Date.now()}`
-        };
-        setUploadedDocuments((prev) => [...prev, localDoc]);
-        toast.success(`Attached ${file.name}`);
-      }
-    }
-
-    setIsUploading(false);
-    e.target.value = '';
-  };
-
-  const handleRemoveDocument = (index) => {
-    setUploadedDocuments((prev) => prev.filter((_, i) => i !== index));
-    toast.info('Document removed');
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
     if (!formData.firstName || !formData.lastName || !formData.email) {
       toast.error('Please complete all required personal details');
       return;
@@ -132,20 +186,32 @@ export const AddEmployeeWizard = () => {
       role: formData.role || 'Employee',
       salary: {
         basic: numericSalary,
+        monthlySalary: formData.monthlySalary,
+        basicSalary: formData.basicSalary,
+        monthlyBand: formData.monthlySalary ? `₹${formData.monthlySalary} / Month` : `₹${Math.round(numericSalary / 12).toLocaleString('en-IN')} / Month`,
+        annualBand: formData.basicSalary ? `₹${formData.basicSalary} / Annum` : `₹${numericSalary.toLocaleString('en-IN')} / Annum`,
         allowances: {
           hra: Math.round(numericSalary * 0.2),
           medical: 2000,
           transport: 1500
         },
         deductions: 0
-      },
-      avatar: uploadedDocuments[0]?.url || '',
-      documents: uploadedDocuments
+      }
     };
 
     try {
       const res = await employeeApi.createEmployee(payload);
       const createdData = res?.data || payload;
+
+      const salaryObj = {
+        employeeName: `${formData.firstName} ${formData.lastName}`,
+        designation: formData.designation || 'Software Engineer',
+        monthlySalary: formData.monthlySalary || `${(numericSalary / 12).toFixed(2)}`,
+        basicSalary: formData.basicSalary || `${numericSalary}`,
+        monthlyBand: formData.monthlySalary ? `₹${formData.monthlySalary} / Month` : `₹${(numericSalary / 12).toLocaleString('en-IN')} / Month`,
+        annualBand: formData.basicSalary ? `₹${formData.basicSalary} / Annum` : `₹${numericSalary.toLocaleString('en-IN')} / Annum`
+      };
+      localStorage.setItem('latest_employee_salary', JSON.stringify(salaryObj));
 
       addStoreEmp({
         name: `${formData.firstName} ${formData.lastName}`,
@@ -156,18 +222,18 @@ export const AddEmployeeWizard = () => {
         branch: formData.branch,
         joinDate: formData.joinDate,
         employmentType: formData.employmentType,
+        monthlySalary: formData.monthlySalary,
+        basicSalary: formData.basicSalary,
+        monthlyBand: salaryObj.monthlyBand,
+        annualBand: salaryObj.annualBand,
         salary: `$${numericSalary.toLocaleString()}`
       });
 
-      toast.success(`Employee ${formData.firstName} ${formData.lastName} (${empCode}) created successfully!`);
+      toast.success(`Employee ${formData.firstName} ${formData.lastName} (${createdData.employeeCode || empCode}) created successfully!`);
       navigate('/hr/employees');
     } catch (err) {
       const errorMsg = err.response?.data?.message || err.message;
-      if (err.response?.status === 403) {
-        toast.error(`Forbidden: Log in as Admin/HR account (admin@hrm.com) to create employees.`);
-      } else {
-        toast.error(`API Error: ${errorMsg}`);
-      }
+      toast.error(`Error creating employee: ${errorMsg}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -177,40 +243,44 @@ export const AddEmployeeWizard = () => {
     { num: 1, title: 'Personal Details' },
     { num: 2, title: 'Employment Info' },
     { num: 3, title: 'Education & Exp' },
-    { num: 4, title: 'Bank & Salary' },
-    { num: 5, title: 'Documents' }
+    { num: 4, title: 'Bank & Salary' }
   ];
 
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
       <PageHeader
         title="Add New Employee"
-        subtitle="Complete multi-step onboarding wizard for new organizational joiners."
+        subtitle="Complete onboarding wizard for new organizational joiners."
         breadcrumbs={['Employees', 'Add Employee']}
       />
 
       {/* Stepper Header */}
-      <div className="grid grid-cols-5 gap-2 bg-slate-100 p-2 rounded-2xl border border-slate-200">
+      <div className="grid grid-cols-4 gap-2 bg-slate-100 p-2 rounded-2xl border border-slate-200">
         {steps.map((s) => (
-          <div
+          <button
             key={s.num}
-            className={`flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold transition-all ${step === s.num
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              setStep(s.num);
+            }}
+            className={`flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer text-left ${step === s.num
                 ? 'bg-[#534675] text-white shadow-md shadow-[#534675]/20'
                 : step > s.num
                   ? 'bg-[#f2f8e8] text-[#59781b] border border-[#9ec64c]/40'
-                  : 'text-slate-500'
+                  : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
               }`}
           >
             <span className="w-5 h-5 rounded-full bg-white flex items-center justify-center text-[10px] shrink-0 border border-slate-200">
               {step > s.num ? <Check className="w-3 h-3 text-[#59781b]" /> : s.num}
             </span>
             <span className="hidden sm:inline truncate">{s.title}</span>
-          </div>
+          </button>
         ))}
       </div>
 
       <Card className="space-y-6 bg-white border border-slate-200 shadow-sm">
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={(e) => e.preventDefault()} noValidate className="space-y-6">
           {step === 1 && (
             <div className="space-y-4 animate-fade-in">
               <h3 className="text-base font-bold text-[#2c2738] border-b border-slate-100 pb-2">
@@ -339,9 +409,24 @@ export const AddEmployeeWizard = () => {
               <h3 className="text-base font-bold text-[#2c2738] border-b border-slate-100 pb-2">
                 Step 3: Education & Past Experience
               </h3>
-              <Input label="Highest Degree / Education" placeholder="M.S. Computer Science - NYU" />
-              <Input label="Previous Employer" placeholder="Acme Technologies Inc." />
-              <Input label="Years of Experience" placeholder="5 Years" />
+              <Input
+                label="Highest Degree / Education"
+                value={formData.education}
+                onChange={(e) => setFormData({ ...formData, education: e.target.value })}
+                placeholder="M.S. Computer Science - NYU"
+              />
+              <Input
+                label="Previous Employer"
+                value={formData.previousEmployer}
+                onChange={(e) => setFormData({ ...formData, previousEmployer: e.target.value })}
+                placeholder="Acme Technologies Inc."
+              />
+              <Input
+                label="Years of Experience"
+                value={formData.experienceYears}
+                onChange={(e) => setFormData({ ...formData, experienceYears: e.target.value })}
+                placeholder="5 Years"
+              />
             </div>
           )}
 
@@ -352,9 +437,18 @@ export const AddEmployeeWizard = () => {
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
-                  label="Annual Salary ($)"
+                  label="Monthly Salary (₹)"
+                  value={formData.monthlySalary}
+                  onChange={(e) => handleMonthlySalaryChange(e.target.value)}
+                  onBlur={handleMonthlyBlur}
+                  placeholder="7,083.33"
+                />
+                <Input
+                  label="Annual Salary (₹)"
                   value={formData.basicSalary}
-                  onChange={(e) => setFormData({ ...formData, basicSalary: e.target.value })}
+                  onChange={(e) => handleAnnualSalaryChange(e.target.value)}
+                  onBlur={handleAnnualBlur}
+                  placeholder="85,000.00"
                 />
                 <Input
                   label="Bank Name"
@@ -366,97 +460,13 @@ export const AddEmployeeWizard = () => {
                   value={formData.accountNumber}
                   onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
                 />
-                <Input label="Routing / IFSC Code" placeholder="CHAS000981" />
+                <Input
+                  label="Routing / IFSC Code"
+                  value={formData.ifscCode}
+                  onChange={(e) => setFormData({ ...formData, ifscCode: e.target.value })}
+                  placeholder="CHAS000981"
+                />
               </div>
-            </div>
-          )}
-
-          {step === 5 && (
-            <div className="space-y-6 animate-fade-in text-left">
-              <h3 className="text-base font-bold text-[#2c2738] border-b border-slate-100 pb-2">
-                Step 5: Document Uploads & Final Submission
-              </h3>
-
-              {/* Hidden file input */}
-              <input
-                type="file"
-                id="docUploadInput"
-                multiple
-                className="hidden"
-                onChange={handleFileUpload}
-                accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
-              />
-
-              {/* Upload Dropzone Box */}
-              <div
-                onClick={() => document.getElementById('docUploadInput').click()}
-                className="p-8 border-2 border-dashed border-[#534675]/30 hover:border-[#534675] rounded-2xl bg-slate-50 hover:bg-[#534675]/5 cursor-pointer transition-all text-center space-y-3"
-              >
-                {isUploading ? (
-                  <div className="flex flex-col items-center gap-2 py-2">
-                    <Loader2 className="w-8 h-8 text-[#534675] animate-spin" />
-                    <p className="text-xs font-bold text-[#534675]">Uploading Document to Cloudinary...</p>
-                  </div>
-                ) : (
-                  <>
-                    <Upload className="w-10 h-10 text-[#534675] mx-auto" />
-                    <div>
-                      <p className="text-sm font-bold text-[#2c2738]">Click to Upload Identity Proof, Resume & Certificates</p>
-                      <p className="text-xs text-slate-500 mt-1">Uploaded via Multer & Cloudinary (PDF, PNG, JPG up to 10MB)</p>
-                    </div>
-                    <Button type="button" variant="outline" size="sm" className="mt-1 pointer-events-none">
-                      Choose Files
-                    </Button>
-                  </>
-                )}
-              </div>
-
-              {/* Uploaded Documents List */}
-              {uploadedDocuments.length > 0 && (
-                <div className="space-y-2">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
-                    Uploaded Documents ({uploadedDocuments.length})
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {uploadedDocuments.map((doc, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl shadow-xs"
-                      >
-                        <div className="flex items-center gap-2.5 truncate">
-                          <FileText className="w-5 h-5 text-[#534675] shrink-0" />
-                          <div className="truncate">
-                            <p className="text-xs font-bold text-[#2c2738] truncate">{doc.name}</p>
-                            <span className="inline-block px-1.5 py-0.5 bg-[#9ec64c]/20 text-[#59781b] text-[9px] font-bold rounded">
-                              Cloudinary Hosted
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <a
-                            href={doc.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1.5 text-slate-400 hover:text-[#534675] rounded-lg hover:bg-slate-100 transition-colors"
-                            title="View Document"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                          </a>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveDocument(idx)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
-                            title="Remove Document"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
@@ -472,12 +482,18 @@ export const AddEmployeeWizard = () => {
               Previous
             </Button>
 
-            {step < 5 ? (
+            {step < 4 ? (
               <Button type="button" onClick={handleNext} variant="primary" icon={ArrowRight}>
                 Next Step
               </Button>
             ) : (
-              <Button type="submit" variant="accent" icon={Save} isLoading={isSubmitting}>
+              <Button
+                type="button"
+                onClick={handleFinalSubmit}
+                variant="accent"
+                icon={Save}
+                isLoading={isSubmitting}
+              >
                 Submit & Create Employee
               </Button>
             )}
@@ -487,3 +503,4 @@ export const AddEmployeeWizard = () => {
     </div>
   );
 };
+

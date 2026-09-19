@@ -16,6 +16,21 @@ export const payrollApi = {
     return await axiosClient.post('/payroll/structures', structureData);
   },
 
+  // Update Salary Structure
+  updateSalaryStructure: async (id, structureData) => {
+    return await axiosClient.put(`/payroll/structures/${id}`, structureData);
+  },
+
+  // Delete Salary Structure
+  deleteSalaryStructure: async (id) => {
+    return await axiosClient.delete(`/payroll/structures/${id}`);
+  },
+
+  // Get employee's salary structure by ID
+  getEmployeeSalaryStructure: async (employeeId) => {
+    return await axiosClient.get(`/payroll/employee/${employeeId}/structure`);
+  },
+
   // Bulk generate monthly payroll
   generateMonthlyPayroll: async (payrollData) => {
     return await axiosClient.post('/payroll/generate', payrollData);
@@ -39,6 +54,11 @@ export const payrollApi = {
   // Update payment status (Pending, Processing, Paid)
   updatePaymentStatus: async (id, statusData) => {
     return await axiosClient.patch(`/payroll/${id}/status`, statusData);
+  },
+
+  // Delete Payslip
+  deletePayslip: async (id) => {
+    return await axiosClient.delete(`/payroll/${id}`);
   }
 };
 
