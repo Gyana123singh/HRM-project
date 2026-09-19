@@ -1,24 +1,39 @@
+import html2pdf from 'html2pdf.js';
 import toast from 'react-hot-toast';
 
 export const downloadPayslipPdf = async (elementId = 'infotattva-salary-slip', filename = 'Salary_Slip.pdf') => {
-  const sourceElement = document.getElementById('infotattva-salary-slip') || document.getElementById(elementId);
+  let sourceElement = document.getElementById(elementId) || document.getElementById('infotattva-salary-slip');
+  
+  // If template element is not present in DOM (e.g. modal opening animation), poll for up to 1.5s
   if (!sourceElement) {
-    toast.error('Payslip template element not found');
+    let retries = 15;
+    while (retries > 0 && !sourceElement) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      sourceElement = document.getElementById(elementId) || document.getElementById('infotattva-salary-slip');
+      retries--;
+    }
+  }
+
+  if (!sourceElement) {
+    toast.error('Payslip template element not found. Please open the payslip preview modal.');
     return;
   }
 
-  toast.loading('Generating PDF download...', { id: 'pdf-toast' });
+  const toastId = 'pdf-toast-' + Date.now();
+  toast.loading('Generating PDF download...', { id: toastId });
 
-  // Create temporary container off-screen
+  // Create temporary container positioned cleanly off-screen with fixed bounds
   const container = document.createElement('div');
-  container.style.position = 'absolute';
-  container.style.left = '-9999px';
+  container.style.position = 'fixed';
+  container.style.left = '0px';
   container.style.top = '0px';
   container.style.width = '760px';
   container.style.backgroundColor = '#ffffff';
   container.style.padding = '0';
   container.style.margin = '0';
-  container.style.zIndex = '-9999';
+  container.style.zIndex = '99999';
+  container.style.opacity = '0';
+  container.style.pointerEvents = 'none';
 
   // Inject CSS variable overrides so Tailwind v4 color variables fallback to HEX
   const overrideStyle = document.createElement('style');
@@ -37,6 +52,7 @@ export const downloadPayslipPdf = async (elementId = 'infotattva-salary-slip', f
       --tw-ring-color: transparent !important;
       --tw-shadow-color: transparent !important;
       --tw-outline-color: transparent !important;
+      box-shadow: none !important;
     }
   `;
   container.appendChild(overrideStyle);
@@ -45,69 +61,62 @@ export const downloadPayslipPdf = async (elementId = 'infotattva-salary-slip', f
   clone.style.backgroundColor = '#ffffff';
   clone.style.margin = '0';
   clone.style.boxShadow = 'none';
+  clone.style.transform = 'none';
 
   container.appendChild(clone);
   document.body.appendChild(container);
 
   try {
-    if (!window.html2pdf) {
+    const getHtml2Pdf = () => {
+      if (typeof html2pdf === 'function') return html2pdf;
+      if (html2pdf && typeof html2pdf.default === 'function') return html2pdf.default;
+      if (window.html2pdf && typeof window.html2pdf === 'function') return window.html2pdf;
+      return null;
+    };
+
+    let pdfEngine = getHtml2Pdf();
+
+    // Fallback load script from CDN if package module not bound on window
+    if (!pdfEngine && !window.html2pdf) {
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
         script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
         script.onload = resolve;
-        script.onerror = () => reject(new Error('Failed to load PDF engine script'));
+        script.onerror = () => reject(new Error('Failed to load PDF engine script from CDN'));
         document.head.appendChild(script);
       });
+      pdfEngine = window.html2pdf;
+    }
+
+    if (!pdfEngine) {
+      throw new Error('PDF generation engine unavailable');
     }
 
     const opt = {
-      margin:       [4, 4, 4, 4],
-      filename:     filename,
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  {
+      margin: [4, 4, 4, 4],
+      filename: filename,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: {
         scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
         width: 760,
-        onclone: (clonedDoc) => {
-          try {
-            const dummyCtx = clonedDoc.createElement('canvas').getContext('2d');
-            const targetEl = clonedDoc.getElementById('infotattva-salary-slip') || clonedDoc.body;
-            const nodes = [targetEl, ...targetEl.querySelectorAll('*')];
-
-            nodes.forEach((node) => {
-              const computed = clonedDoc.defaultView.getComputedStyle(node);
-              for (let i = 0; i < computed.length; i++) {
-                const prop = computed[i];
-                const val = computed.getPropertyValue(prop);
-                if (val && val.includes('oklch')) {
-                  try {
-                    dummyCtx.fillStyle = val;
-                    node.style.setProperty(prop, dummyCtx.fillStyle, 'important');
-                  } catch (e) {
-                    node.style.setProperty(prop, '#000000', 'important');
-                  }
-                }
-              }
-            });
-          } catch (e) {
-            console.warn('onclone sanitization notice:', e);
-          }
-        }
+        windowWidth: 800
       },
-      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak:    { mode: ['avoid-all'] }
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
-    await window.html2pdf().set(opt).from(clone).save();
-    toast.success('Salary Slip PDF downloaded!', { id: 'pdf-toast' });
+    await pdfEngine().set(opt).from(clone).save();
+    toast.success('Salary Slip PDF downloaded successfully!', { id: toastId });
   } catch (err) {
     console.error('PDF download error:', err);
-    toast.error('Failed to generate PDF download.');
+    toast.error(`Failed to generate PDF: ${err.message || 'Unknown error'}`, { id: toastId });
   } finally {
     if (document.body.contains(container)) {
       document.body.removeChild(container);
     }
   }
 };
+

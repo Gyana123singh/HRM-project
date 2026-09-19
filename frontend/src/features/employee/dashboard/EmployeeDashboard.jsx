@@ -30,12 +30,12 @@ export const EmployeeDashboard = () => {
   const [clockTime, setClockTime] = useState(null);
 
   // Leave Balances & Payslip State
-  const [leaveBalances, setLeaveBalances] = useState({ casual: 6, sick: 4, earned: 12 });
+  const [leaveBalances, setLeaveBalances] = useState({ casual: 12, sick: 10, earned: 15 });
   const [latestPayslip, setLatestPayslip] = useState({
-    grossSalary: 9166.66,
-    deductions: 625.00,
-    netSalary: 8541.66,
-    month: 'July 2026'
+    grossSalary: 0,
+    deductions: 0,
+    netSalary: 0,
+    month: ''
   });
 
   // Support Ticket Form State
@@ -45,23 +45,21 @@ export const EmployeeDashboard = () => {
 
   // Leave Application Form State
   const [leaveType, setLeaveType] = useState('Casual Leave');
-  const [startDate, setStartDate] = useState('2026-08-01');
-  const [endDate, setEndDate] = useState('2026-08-02');
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [leaveReason, setLeaveReason] = useState('');
 
   // Interactive Tasks State
   const [myTasks, setMyTasks] = useState([]);
 
   // Kudos Showcase State
-  const [kudosFeed, setKudosFeed] = useState([
-    { badge: 'Innovation Star Award', points: '+500 Pts', sender: 'Sarah Jenkins (HR Admin)', message: 'Exceptional work re-architecting the enterprise HRM design system!' },
-    { badge: 'Team Player Badge', points: '+300 Pts', sender: 'Alex Vance (VP Eng)', message: 'Superb collaboration on sprint planning and code reviews!' }
-  ]);
+  const [kudosFeed, setKudosFeed] = useState([]);
 
   // Upcoming Holidays
   const holidays = [
-    { name: 'Labor Day', date: 'Sep 07, 2026', type: 'Public Holiday', daysLeft: '41 days left' },
-    { name: 'Independence Day', date: 'Aug 15, 2026', type: 'National Holiday', daysLeft: '18 days left' }
+    { name: 'Independence Day', date: 'Aug 15, 2026', type: 'National Holiday', daysLeft: 'Upcoming' },
+    { name: 'Ganesh Chaturthi', date: 'Sep 15, 2026', type: 'Regional Holiday', daysLeft: 'Upcoming' },
+    { name: 'Gandhi Jayanti', date: 'Oct 02, 2026', type: 'National Holiday', daysLeft: 'Upcoming' }
   ];
 
   // Fetch API data on load
@@ -80,15 +78,34 @@ export const EmployeeDashboard = () => {
         const d = statsRes.value.data.data;
         if (d.leaveBalances) setLeaveBalances(d.leaveBalances);
         if (d.latestPayslip) setLatestPayslip(d.latestPayslip);
+        if (d.tasks && Array.isArray(d.tasks) && d.tasks.length > 0) {
+          setMyTasks(d.tasks.map(t => ({
+            id: t._id || t.id,
+            _id: t._id || t.id,
+            title: t.title,
+            priority: t.priority || 'Medium',
+            status: t.status || 'In Progress',
+            deadline: t.dueDate || 'Today',
+            done: t.status === 'Completed'
+          })));
+        }
+        if (d.kudos && Array.isArray(d.kudos) && d.kudos.length > 0) {
+          setKudosFeed(d.kudos.map(k => ({
+            badge: k.badge || 'Excellence Award',
+            points: k.points || '+100 Pts',
+            sender: k.sender || 'Management',
+            message: k.message || 'Great contribution!'
+          })));
+        }
       }
 
       if (payslipsRes.status === 'fulfilled' && payslipsRes.value.data?.data && payslipsRes.value.data.data.length > 0) {
         const topSlip = payslipsRes.value.data.data[0];
         setLatestPayslip({
-          grossSalary: topSlip.grossSalary || 9166.66,
-          deductions: topSlip.totalDeductions || topSlip.deductions || 625.00,
-          netSalary: topSlip.netSalary || 8541.66,
-          month: topSlip.month || 'July 2026'
+          grossSalary: topSlip.grossSalary || 0,
+          deductions: topSlip.totalDeductions || (typeof topSlip.deductions === 'number' ? topSlip.deductions : topSlip.deductions?.totalDeductions) || 0,
+          netSalary: topSlip.netSalary || 0,
+          month: topSlip.month ? `${topSlip.month}/${topSlip.year || 2026}` : 'Current Month'
         });
       }
 
@@ -113,12 +130,6 @@ export const EmployeeDashboard = () => {
             deadline: t.dueDate || 'Today',
             done: t.status === 'Completed'
           })));
-        } else {
-          setMyTasks([
-            { id: 'T-101', title: 'Refactor Auth Token Refresh Middleware', priority: 'High', status: 'In Progress', deadline: 'Today, 5:00 PM', done: false },
-            { id: 'T-102', title: 'Complete Q3 Frontend Performance Audit', priority: 'Medium', status: 'In Progress', deadline: 'Tomorrow', done: false },
-            { id: 'T-103', title: 'Review Team Pull Requests #402 & #405', priority: 'Low', status: 'Completed', deadline: 'Jul 30', done: true }
-          ]);
         }
       }
 
@@ -244,8 +255,8 @@ export const EmployeeDashboard = () => {
     <div className="space-y-6 animate-fade-in pb-12 max-w-6xl">
       {/* Header */}
       <PageHeader
-        title={`Good Morning, ${user?.name?.split(' ')[0] || 'Rahul'} 👋`}
-        subtitle="Tuesday, 28 July 2026 • Senior Frontend Developer (Engineering)"
+        title={`Good Morning, ${user?.name?.split(' ')[0] || 'Employee'} 👋`}
+        subtitle={`${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} • ${user?.designation || user?.role || 'Team Member'}`}
         actions={
           <div className="flex items-center gap-2 flex-wrap">
             <Button
@@ -309,30 +320,34 @@ export const EmployeeDashboard = () => {
           </div>
 
           <div className="space-y-3">
-            {myTasks.map((t) => (
-              <div
-                key={t.id}
-                onClick={() => toggleTaskDone(t)}
-                className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                  t.done ? 'bg-slate-50 border-slate-200 opacity-60' : 'bg-white border-slate-200 hover:border-[#534675]/40'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-colors ${t.done ? 'bg-[#59781b] border-[#59781b] text-white' : 'border-slate-300 bg-white'}`}>
-                    {t.done && <CheckCircle2 className="w-3.5 h-3.5" />}
+            {myTasks.length > 0 ? (
+              myTasks.map((t) => (
+                <div
+                  key={t.id}
+                  onClick={() => toggleTaskDone(t)}
+                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                    t.done ? 'bg-slate-50 border-slate-200 opacity-60' : 'bg-white border-slate-200 hover:border-[#534675]/40'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-colors ${t.done ? 'bg-[#59781b] border-[#59781b] text-white' : 'border-slate-300 bg-white'}`}>
+                      {t.done && <CheckCircle2 className="w-3.5 h-3.5" />}
+                    </div>
+                    <div>
+                      <h4 className={`text-xs font-bold ${t.done ? 'line-through text-slate-400' : 'text-[#2c2738]'}`}>
+                        {t.title}
+                      </h4>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Deadline: {t.deadline}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className={`text-xs font-bold ${t.done ? 'line-through text-slate-400' : 'text-[#2c2738]'}`}>
-                      {t.title}
-                    </h4>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Deadline: {t.deadline}</p>
-                  </div>
+                  <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md ${t.priority === 'High' ? 'bg-rose-50 text-rose-600 border border-rose-200' : 'bg-slate-100 text-slate-600'}`}>
+                    {t.priority}
+                  </span>
                 </div>
-                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md ${t.priority === 'High' ? 'bg-rose-50 text-rose-600 border border-rose-200' : 'bg-slate-100 text-slate-600'}`}>
-                  {t.priority}
-                </span>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-xs text-slate-400 italic py-4 text-center">No active tasks assigned yet</p>
+            )}
           </div>
         </Card>
 
@@ -344,7 +359,7 @@ export const EmployeeDashboard = () => {
                 <Award className="w-4.5 h-4.5 text-[#e95f87]" />
                 Kudos & Peer Recognition
               </h3>
-              <p className="text-xs text-slate-500">Total Points Earned: <strong className="text-[#59781b]">+800 Pts</strong></p>
+              <p className="text-xs text-slate-500">Recognition Badge Stream</p>
             </div>
             <Button onClick={() => navigate('/employee/goals')} variant="ghost" size="sm">
               View All ↗
@@ -352,18 +367,22 @@ export const EmployeeDashboard = () => {
           </div>
 
           <div className="space-y-3">
-            {kudosFeed.map((kud, idx) => (
-              <div key={idx} className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <span className="px-2.5 py-0.5 bg-rose-50 text-[#e95f87] text-[11px] font-bold rounded-lg border border-rose-200">
-                    🏆 {kud.badge}
-                  </span>
-                  <span className="text-xs font-bold text-[#59781b]">{kud.points}</span>
+            {kudosFeed.length > 0 ? (
+              kudosFeed.map((kud, idx) => (
+                <div key={idx} className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <span className="px-2.5 py-0.5 bg-rose-50 text-[#e95f87] text-[11px] font-bold rounded-lg border border-rose-200">
+                      🏆 {kud.badge}
+                    </span>
+                    <span className="text-xs font-bold text-[#59781b]">{kud.points}</span>
+                  </div>
+                  <p className="text-xs text-[#2c2738] italic">"{kud.message}"</p>
+                  <p className="text-[10px] text-slate-400 font-semibold">Awarded by: {kud.sender}</p>
                 </div>
-                <p className="text-xs text-[#2c2738] italic">"{kud.message}"</p>
-                <p className="text-[10px] text-slate-400 font-semibold">Awarded by: {kud.sender}</p>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-xs text-slate-400 italic py-4 text-center">No peer recognition received yet</p>
+            )}
           </div>
         </Card>
       </div>
@@ -375,7 +394,7 @@ export const EmployeeDashboard = () => {
           <div className="flex justify-between items-center border-b border-slate-100 pb-3">
             <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
               <DollarSign className="w-4.5 h-4.5 text-emerald-600" />
-              Latest Payslip Summary ({latestPayslip.month || 'July 2026'})
+              Latest Payslip Summary ({latestPayslip.month || 'Current Month'})
             </h3>
             <Button onClick={() => navigate('/employee/payslips')} variant="ghost" size="sm">
               View Payslip ↗
@@ -386,25 +405,25 @@ export const EmployeeDashboard = () => {
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
               <span className="text-slate-500 font-medium block">Gross Salary</span>
               <span className="text-slate-800 font-bold text-sm">
-                {typeof latestPayslip.grossSalary === 'string' && latestPayslip.grossSalary.startsWith('$')
+                {typeof latestPayslip.grossSalary === 'string' && (latestPayslip.grossSalary.startsWith('₹') || latestPayslip.grossSalary.startsWith('$'))
                   ? latestPayslip.grossSalary
-                  : `$${Number(parseFloat(String(latestPayslip.grossSalary).replace(/[^0-9.]/g, '')) || 9166.66).toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+                  : `₹${Number(parseFloat(String(latestPayslip.grossSalary).replace(/[^0-9.]/g, '')) || 0).toLocaleString('en-IN')}`}
               </span>
             </div>
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
               <span className="text-slate-500 font-medium block">Deductions</span>
               <span className="text-rose-600 font-bold text-sm">
-                {typeof latestPayslip.deductions === 'string' && latestPayslip.deductions.startsWith('$')
+                {typeof latestPayslip.deductions === 'string' && (latestPayslip.deductions.startsWith('₹') || latestPayslip.deductions.startsWith('$'))
                   ? `-${latestPayslip.deductions}`
-                  : `-$${Number(parseFloat(String(latestPayslip.deductions).replace(/[^0-9.]/g, '')) || 625).toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+                  : `-₹${Number(parseFloat(String(latestPayslip.deductions).replace(/[^0-9.]/g, '')) || 0).toLocaleString('en-IN')}`}
               </span>
             </div>
             <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 col-span-2">
               <span className="text-emerald-800 font-bold block">Net Salary Disbursed</span>
               <span className="text-emerald-600 font-black text-base">
-                {typeof latestPayslip.netSalary === 'string' && latestPayslip.netSalary.startsWith('$')
+                {typeof latestPayslip.netSalary === 'string' && (latestPayslip.netSalary.startsWith('₹') || latestPayslip.netSalary.startsWith('$'))
                   ? latestPayslip.netSalary
-                  : `$${Number(parseFloat(String(latestPayslip.netSalary).replace(/[^0-9.]/g, '')) || 8541.66).toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+                  : `₹${Number(parseFloat(String(latestPayslip.netSalary).replace(/[^0-9.]/g, '')) || 0).toLocaleString('en-IN')}`}
               </span>
             </div>
           </div>

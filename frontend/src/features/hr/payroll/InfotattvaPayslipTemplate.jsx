@@ -197,7 +197,7 @@ export const InfotattvaPayslipTemplate = ({ payslip }) => {
       {/* 4. Salary Breakdown */}
       <div className="mb-4">
         <h2 className="text-[10.5px] font-extrabold uppercase tracking-wider mb-1.5" style={{ color: '#0f2942' }}>
-          SALARY BREAKDOWN & LEAVE DEDUCTION EVALUATION
+          SALARY BREAKDOWN & LEAVE DEDUCTIONS
         </h2>
         <div className="overflow-hidden" style={{ border: '1px solid #c5d0dc' }}>
           <table className="w-full text-left text-[10.5px] border-collapse">
@@ -257,9 +257,9 @@ export const InfotattvaPayslipTemplate = ({ payslip }) => {
                 <td className="px-3 py-1.5 text-right font-bold font-mono" style={{ color: '#991b1b' }}>₹ {formatVal(totalDeductions)}</td>
               </tr>
 
-              {/* Evaluated Real Gross Earnings Row */}
+              {/* Gross Earnings Row */}
               <tr style={{ backgroundColor: '#e9f0f8', borderTop: '2px solid #0f2942' }}>
-                <td className="px-3 py-2 font-extrabold uppercase" style={{ color: '#0f2942', borderRight: '1px solid #c5d0dc' }}>EVALUATED REAL GROSS EARNINGS</td>
+                <td className="px-3 py-2 font-extrabold uppercase" style={{ color: '#0f2942', borderRight: '1px solid #c5d0dc' }}>TOTAL GROSS EARNINGS</td>
                 <td className="px-3 py-2 text-right font-extrabold font-mono text-[11px]" style={{ color: '#15803d', borderRight: '1px solid #c5d0dc' }}>₹ {formatVal(realGrossEarnings)}</td>
                 <td className="px-3 py-2 font-extrabold uppercase" style={{ color: '#0f2942', borderRight: '1px solid #c5d0dc' }}>NET SALARY PAYABLE</td>
                 <td className="px-3 py-2 text-right font-extrabold font-mono text-[11px]" style={{ color: '#0f2942' }}>₹ {formatVal(netSalary)}</td>
@@ -275,7 +275,7 @@ export const InfotattvaPayslipTemplate = ({ payslip }) => {
           className="flex flex-row justify-between items-center px-4 py-2.5 font-extrabold tracking-wide rounded-xs"
           style={{ backgroundColor: '#0f2942', color: '#ffffff' }}
         >
-          <span className="text-[12px] uppercase">EVALUATED NET SALARY PAYABLE</span>
+          <span className="text-[12px] uppercase">NET SALARY PAYABLE</span>
           <span className="text-[14px] font-bold font-mono">₹ {formatVal(netSalary)}</span>
         </div>
 
@@ -286,11 +286,11 @@ export const InfotattvaPayslipTemplate = ({ payslip }) => {
           <table className="w-full text-left border-collapse">
             <tbody>
               <tr style={{ borderBottom: '1px solid #c5d0dc' }}>
-                <td className="px-3 py-2 font-bold" style={{ backgroundColor: '#f4f7fa', color: '#0f2942', width: '22%' }}>Evaluation Summary</td>
+                <td className="px-3 py-2 font-bold" style={{ backgroundColor: '#f4f7fa', color: '#0f2942', width: '22%' }}>Payroll Summary</td>
                 <td className="px-3 py-2 italic font-mono" style={{ color: '#1e293b' }}>
                   Base Gross: <span className="font-bold">₹{formatVal(fullBaseGross)}</span> &nbsp;|&nbsp; 
-                  LOP ({numLopDays} Days): <span className="font-bold text-rose-600">-₹{formatVal(leaveDeduction)}</span> &nbsp;|&nbsp; 
-                  Real Gross: <span className="font-bold text-emerald-700">₹{formatVal(realGrossEarnings)}</span>
+                  LOP ({numLopDays} Days): <span className="font-bold" style={{ color: '#dc2626' }}>-₹{formatVal(leaveDeduction)}</span> &nbsp;|&nbsp; 
+                  Gross Salary: <span className="font-bold" style={{ color: '#15803d' }}>₹{formatVal(realGrossEarnings)}</span>
                 </td>
               </tr>
               <tr style={{ borderBottom: '1px solid #c5d0dc' }}>

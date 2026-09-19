@@ -1554,7 +1554,7 @@ export const PayrollDashboard = () => {
             return (
               <div className="p-3 bg-[#f0edf7] rounded-xl border border-[#dcd6e8] space-y-2">
                 <div className="flex justify-between items-center text-xs font-bold text-[#534675]">
-                  <span>Leave & Gross Salary Evaluation</span>
+                  <span>Leave & Gross Salary Summary</span>
                   <span>{lopDays} Day(s) Unpaid Leave</span>
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-[11px] text-center pt-1">
@@ -1567,7 +1567,7 @@ export const PayrollDashboard = () => {
                     <p className="font-bold text-rose-600">-₹{leaveDed.toLocaleString('en-IN')}</p>
                   </div>
                   <div className="p-2 bg-[#f2f8e8] rounded-lg border border-[#c3dc93]">
-                    <p className="text-[9px] text-[#59781b] font-extrabold uppercase">Real Gross Earnings</p>
+                    <p className="text-[9px] text-[#59781b] font-extrabold uppercase">Gross Earnings</p>
                     <p className="font-extrabold text-[#59781b]">₹{realGross.toLocaleString('en-IN')}</p>
                   </div>
                 </div>
