@@ -56,6 +56,17 @@ const getMonthlyBand = (bandStr, fallbackMonthly) => {
   return `₹${formatted} / Month`;
 };
 
+const formatMonthYearStr = (monthYearVal) => {
+  if (!monthYearVal) return 'July 2026';
+  const parts = monthYearVal.split('-');
+  if (parts.length < 2) return monthYearVal;
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10);
+  if (isNaN(year) || isNaN(month)) return monthYearVal;
+  const date = new Date(year, month - 1, 1);
+  return date.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+};
+
 function convertNumberToWords(amount) {
   if (amount === undefined || amount === null || isNaN(amount) || amount === 0) return 'Indian Rupees Zero Only';
 
@@ -170,6 +181,7 @@ export const PayrollDashboard = () => {
     employeeId: '',
     month: 7,
     year: 2026,
+    monthYear: '2026-07',
     totalWorkingDays: 30,
     paidDays: 30,
     lopDays: 0,
@@ -737,13 +749,17 @@ export const PayrollDashboard = () => {
       const leaveDed = lopDays > 0 ? Math.round((monthlyGross / totDays) * lopDays) : 0;
       const realGross = Math.max(0, monthlyGross - leaveDed);
 
+      const monthFormattedStr = formatMonthYearStr(
+        newPayslip.monthYear || `${newPayslip.year || 2026}-${String(newPayslip.month || 7).padStart(2, '0')}`
+      );
+
       const generatedSlipObj = {
         _id: `LOCAL-PAY-${Date.now()}`,
         id: `PAY-${Math.floor(700 + Math.random() * 300)}`,
         payslipCode: `PAY-${Math.floor(700 + Math.random() * 300)}`,
         employeeName: empName,
         employeeId: empCode,
-        month: 'July 2026',
+        month: monthFormattedStr,
         designation: targetEmp?.designation || 'Software Engineer',
         department: targetEmp?.department?.name || targetEmp?.department || 'Engineering',
         joiningDate: '01/06/2023',
@@ -1386,15 +1402,22 @@ export const PayrollDashboard = () => {
             ]}
           />
           <div className="grid grid-cols-2 gap-3">
-            <Select
-              label="Pay Month"
-              value={String(newPayslip.month)}
-              onChange={(e) => setNewPayslip({ ...newPayslip, month: Number(e.target.value) })}
-              options={[
-                { label: 'July 2026', value: '7' },
-                { label: 'June 2026', value: '6' },
-                { label: 'May 2026', value: '5' }
-              ]}
+            <Input
+              label="Pay Month & Year"
+              type="month"
+              value={newPayslip.monthYear || '2026-07'}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (!val) return;
+                const parts = val.split('-');
+                setNewPayslip({
+                  ...newPayslip,
+                  monthYear: val,
+                  year: Number(parts[0]),
+                  month: Number(parts[1])
+                });
+              }}
+              required
             />
             <Select
               label="Payment Mode"
