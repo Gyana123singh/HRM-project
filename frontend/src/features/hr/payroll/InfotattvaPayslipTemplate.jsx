@@ -203,48 +203,48 @@ export const InfotattvaPayslipTemplate = ({ payslip }) => {
           <table className="w-full text-left text-[10.5px] border-collapse">
             <thead>
               <tr style={{ backgroundColor: '#0f2942', color: '#ffffff' }}>
-                <th className="px-3 py-1.5 font-bold uppercase tracking-wider w-[35%]" style={{ borderRight: '1px solid #1e3a5f' }}>EARNINGS COMPONENTS</th>
-                <th className="px-3 py-1.5 font-bold uppercase tracking-wider text-right w-[15%]" style={{ borderRight: '1px solid #1e3a5f' }}>AMOUNT (₹)</th>
-                <th className="px-3 py-1.5 font-bold uppercase tracking-wider w-[35%]" style={{ borderRight: '1px solid #1e3a5f' }}>DEDUCTIONS & ADJUSTMENTS</th>
-                <th className="px-3 py-1.5 font-bold uppercase tracking-wider text-right w-[15%]">AMOUNT (₹)</th>
+                <th className="px-3 py-1.5 font-bold uppercase tracking-wider w-[30%]" style={{ borderRight: '1px solid #1e3a5f' }}>EARNINGS COMPONENTS</th>
+                <th className="px-3 py-1.5 font-bold uppercase tracking-wider text-right w-[20%]" style={{ borderRight: '1px solid #1e3a5f', whiteSpace: 'nowrap' }}>AMOUNT (₹)</th>
+                <th className="px-3 py-1.5 font-bold uppercase tracking-wider w-[30%]" style={{ borderRight: '1px solid #1e3a5f' }}>DEDUCTIONS & ADJUSTMENTS</th>
+                <th className="px-3 py-1.5 font-bold uppercase tracking-wider text-right w-[20%]" style={{ whiteSpace: 'nowrap' }}>AMOUNT (₹)</th>
               </tr>
             </thead>
             <tbody>
               <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
                 <td className="px-3 py-1.5" style={{ color: '#1e293b', borderRight: '1px solid #c5d0dc' }}>Basic Salary (50%)</td>
-                <td className="px-3 py-1.5 text-right italic font-mono" style={{ color: '#334155', borderRight: '1px solid #c5d0dc' }}>{formatVal(basic)}</td>
+                <td className="px-3 py-1.5 text-right italic font-mono" style={{ color: '#334155', borderRight: '1px solid #c5d0dc', whiteSpace: 'nowrap' }}>₹{formatVal(basic)}</td>
                 <td className="px-3 py-1.5 font-medium" style={{ color: numLopDays > 0 ? '#991b1b' : '#1e293b', borderRight: '1px solid #c5d0dc' }}>
                   Leave Deduction ({numLopDays} Day{numLopDays !== 1 ? 's' : ''} LOP)
                 </td>
-                <td className="px-3 py-1.5 text-right italic font-mono text-rose-600 font-semibold" style={{ color: leaveDeduction > 0 ? '#dc2626' : '#334155' }}>-{formatVal(leaveDeduction)}</td>
+                <td className="px-3 py-1.5 text-right italic font-mono font-semibold" style={{ color: leaveDeduction > 0 ? '#dc2626' : '#334155', whiteSpace: 'nowrap' }}>-₹{formatVal(leaveDeduction)}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
                 <td className="px-3 py-1.5" style={{ color: '#1e293b', borderRight: '1px solid #c5d0dc' }}>House Rent Allowance (HRA - 50% Basic)</td>
-                <td className="px-3 py-1.5 text-right italic font-mono" style={{ color: '#334155', borderRight: '1px solid #c5d0dc' }}>{formatVal(hra)}</td>
+                <td className="px-3 py-1.5 text-right italic font-mono" style={{ color: '#334155', borderRight: '1px solid #c5d0dc', whiteSpace: 'nowrap' }}>₹{formatVal(hra)}</td>
                 <td className="px-3 py-1.5" style={{ color: '#1e293b', borderRight: '1px solid #c5d0dc' }}>Income Tax (TDS)</td>
-                <td className="px-3 py-1.5 text-right italic font-mono" style={{ color: '#334155' }}>{formatVal(taxDeduction)}</td>
+                <td className="px-3 py-1.5 text-right italic font-mono" style={{ color: '#334155', whiteSpace: 'nowrap' }}>₹{formatVal(taxDeduction)}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
                 <td className="px-3 py-1.5" style={{ color: '#1e293b', borderRight: '1px solid #c5d0dc' }}>Conveyance Allowance</td>
-                <td className="px-3 py-1.5 text-right italic font-mono" style={{ color: '#334155', borderRight: '1px solid #c5d0dc' }}>{formatVal(conveyance)}</td>
+                <td className="px-3 py-1.5 text-right italic font-mono" style={{ color: '#334155', borderRight: '1px solid #c5d0dc', whiteSpace: 'nowrap' }}>₹{formatVal(conveyance)}</td>
                 <td className="px-3 py-1.5" style={{ color: '#1e293b', borderRight: '1px solid #c5d0dc' }}>Provident Fund (PF)</td>
-                <td className="px-3 py-1.5 text-right italic font-mono" style={{ color: '#334155' }}>{formatVal(pfDeduction)}</td>
+                <td className="px-3 py-1.5 text-right italic font-mono" style={{ color: '#334155', whiteSpace: 'nowrap' }}>₹{formatVal(pfDeduction)}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
                 <td className="px-3 py-1.5" style={{ color: '#1e293b', borderRight: '1px solid #c5d0dc' }}>Special Allowance</td>
-                <td className="px-3 py-1.5 text-right italic font-mono" style={{ color: '#334155', borderRight: '1px solid #c5d0dc' }}>{formatVal(specialAllowance)}</td>
+                <td className="px-3 py-1.5 text-right italic font-mono" style={{ color: '#334155', borderRight: '1px solid #c5d0dc', whiteSpace: 'nowrap' }}>₹{formatVal(specialAllowance)}</td>
                 <td className="px-3 py-1.5" style={{ color: '#1e293b', borderRight: '1px solid #c5d0dc' }}>Other Deductions</td>
-                <td className="px-3 py-1.5 text-right italic font-mono" style={{ color: '#334155' }}>{formatVal(otherDeduction)}</td>
+                <td className="px-3 py-1.5 text-right italic font-mono" style={{ color: '#334155', whiteSpace: 'nowrap' }}>₹{formatVal(otherDeduction)}</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
                 <td className="px-3 py-1.5" style={{ color: '#1e293b', borderRight: '1px solid #c5d0dc' }}>Bonus / Incentive</td>
-                <td className="px-3 py-1.5 text-right italic font-mono" style={{ color: '#334155', borderRight: '1px solid #c5d0dc' }}>{formatVal(bonus)}</td>
+                <td className="px-3 py-1.5 text-right italic font-mono" style={{ color: '#334155', borderRight: '1px solid #c5d0dc', whiteSpace: 'nowrap' }}>₹{formatVal(bonus)}</td>
                 <td className="px-3 py-1.5" style={{ backgroundColor: '#f8fafc', borderRight: '1px solid #c5d0dc' }}></td>
                 <td className="px-3 py-1.5" style={{ backgroundColor: '#f8fafc' }}></td>
               </tr>
               <tr style={{ borderBottom: '1px solid #c5d0dc' }}>
                 <td className="px-3 py-1.5" style={{ color: '#1e293b', borderRight: '1px solid #c5d0dc' }}>Other Earnings / Reimbursement</td>
-                <td className="px-3 py-1.5 text-right italic font-mono" style={{ color: '#334155', borderRight: '1px solid #c5d0dc' }}>{formatVal(otherEarnings)}</td>
+                <td className="px-3 py-1.5 text-right italic font-mono" style={{ color: '#334155', borderRight: '1px solid #c5d0dc', whiteSpace: 'nowrap' }}>₹{formatVal(otherEarnings)}</td>
                 <td className="px-3 py-1.5" style={{ backgroundColor: '#f8fafc', borderRight: '1px solid #c5d0dc' }}></td>
                 <td className="px-3 py-1.5" style={{ backgroundColor: '#f8fafc' }}></td>
               </tr>
@@ -252,17 +252,17 @@ export const InfotattvaPayslipTemplate = ({ payslip }) => {
               {/* Subtotal Base Gross Row */}
               <tr style={{ backgroundColor: '#f1f5f9', borderTop: '1px solid #cbd5e1' }}>
                 <td className="px-3 py-1.5 font-bold" style={{ color: '#334155', borderRight: '1px solid #c5d0dc' }}>Base Monthly Gross</td>
-                <td className="px-3 py-1.5 text-right font-bold font-mono" style={{ color: '#334155', borderRight: '1px solid #c5d0dc' }}>₹ {formatVal(fullBaseGross)}</td>
+                <td className="px-3 py-1.5 text-right font-bold font-mono" style={{ color: '#334155', borderRight: '1px solid #c5d0dc', whiteSpace: 'nowrap' }}>₹{formatVal(fullBaseGross)}</td>
                 <td className="px-3 py-1.5 font-bold" style={{ color: '#991b1b', borderRight: '1px solid #c5d0dc' }}>Total Deductions (Inc. LOP)</td>
-                <td className="px-3 py-1.5 text-right font-bold font-mono" style={{ color: '#991b1b' }}>₹ {formatVal(totalDeductions)}</td>
+                <td className="px-3 py-1.5 text-right font-bold font-mono" style={{ color: '#991b1b', whiteSpace: 'nowrap' }}>₹{formatVal(totalDeductions)}</td>
               </tr>
 
               {/* Gross Earnings Row */}
               <tr style={{ backgroundColor: '#e9f0f8', borderTop: '2px solid #0f2942' }}>
                 <td className="px-3 py-2 font-extrabold uppercase" style={{ color: '#0f2942', borderRight: '1px solid #c5d0dc' }}>TOTAL GROSS EARNINGS</td>
-                <td className="px-3 py-2 text-right font-extrabold font-mono text-[11px]" style={{ color: '#15803d', borderRight: '1px solid #c5d0dc' }}>₹ {formatVal(realGrossEarnings)}</td>
+                <td className="px-3 py-2 text-right font-extrabold font-mono text-[11px]" style={{ color: '#15803d', borderRight: '1px solid #c5d0dc', whiteSpace: 'nowrap' }}>₹{formatVal(realGrossEarnings)}</td>
                 <td className="px-3 py-2 font-extrabold uppercase" style={{ color: '#0f2942', borderRight: '1px solid #c5d0dc' }}>NET SALARY PAYABLE</td>
-                <td className="px-3 py-2 text-right font-extrabold font-mono text-[11px]" style={{ color: '#0f2942' }}>₹ {formatVal(netSalary)}</td>
+                <td className="px-3 py-2 text-right font-extrabold font-mono text-[11px]" style={{ color: '#0f2942', whiteSpace: 'nowrap' }}>₹{formatVal(netSalary)}</td>
               </tr>
             </tbody>
           </table>
@@ -276,7 +276,7 @@ export const InfotattvaPayslipTemplate = ({ payslip }) => {
           style={{ backgroundColor: '#0f2942', color: '#ffffff' }}
         >
           <span className="text-[12px] uppercase">NET SALARY PAYABLE</span>
-          <span className="text-[14px] font-bold font-mono">₹ {formatVal(netSalary)}</span>
+          <span className="text-[14px] font-bold font-mono whitespace-nowrap" style={{ whiteSpace: 'nowrap' }}>₹{formatVal(netSalary)}</span>
         </div>
 
         <div
