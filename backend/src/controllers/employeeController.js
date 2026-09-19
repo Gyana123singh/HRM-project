@@ -156,34 +156,48 @@ exports.createEmployee = async (req, res, next) => {
     }
 
     // Resolve salary details and calculate bands
-    let basicNum = 85000;
-    let monthlyVal = '7,083.33';
-    let annualVal = '85,000.00';
+    let basicNum = 144000;
+    let monthlyVal = '12,000.00';
+    let annualVal = '144,000.00';
 
     if (salary) {
       if (typeof salary === 'object') {
         monthlyVal = salary.monthlySalary || salary.monthlyBand || monthlyVal;
         annualVal = salary.basicSalary || salary.annualBand || annualVal;
-        basicNum = salary.basic || parseFloat(String(annualVal).replace(/[^0-9.]/g, '')) || 85000;
+        basicNum = salary.basic || parseFloat(String(annualVal).replace(/[^0-9.]/g, '')) || 144000;
       } else {
-        basicNum = parseFloat(String(salary).replace(/[^0-9.]/g, '')) || 85000;
+        basicNum = parseFloat(String(salary).replace(/[^0-9.]/g, '')) || 144000;
         monthlyVal = (basicNum / 12).toFixed(2);
         annualVal = basicNum.toString();
       }
     }
 
-    const cleanMonthly = parseFloat(String(monthlyVal).replace(/[^0-9.]/g, '')) || (basicNum / 12);
-    const cleanAnnual = parseFloat(String(annualVal).replace(/[^0-9.]/g, '')) || basicNum;
+    let cleanMonthly = parseFloat(String(monthlyVal).replace(/[^0-9.]/g, ''));
+    let cleanAnnual = parseFloat(String(annualVal).replace(/[^0-9.]/g, ''));
+
+    if (!cleanAnnual || isNaN(cleanAnnual)) {
+      cleanAnnual = cleanMonthly ? cleanMonthly * 12 : 144000;
+    }
+    if (!cleanMonthly || isNaN(cleanMonthly) || cleanMonthly > 500000) {
+      cleanMonthly = cleanAnnual > 0 ? Math.round(cleanAnnual / 12) : 12000;
+    }
+
+    const monthlyGross = cleanMonthly;
+    const monthlyBasic = Math.round(monthlyGross * 0.50);
+    const monthlyHra = Math.round(monthlyGross * 0.25);
+    const monthlyConveyance = Math.round(monthlyGross * 0.10);
+    const monthlySpecialAllowance = Math.round(monthlyGross * 0.15);
 
     payload.salary = {
-      basic: Math.round(cleanAnnual * 0.5),
-      monthlySalary: String(monthlyVal),
-      basicSalary: String(annualVal),
+      grossSalary: monthlyGross,
+      basic: monthlyBasic,
+      hra: monthlyHra,
+      conveyance: monthlyConveyance,
+      specialAllowance: monthlySpecialAllowance,
+      monthlySalary: cleanMonthly.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      basicSalary: cleanAnnual.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       monthlyBand: `₹${cleanMonthly.toLocaleString('en-IN', { maximumFractionDigits: 2 })} / Month`,
       annualBand: `₹${cleanAnnual.toLocaleString('en-IN')} / Annum`,
-      hra: Math.round(cleanAnnual * 0.25),
-      conveyance: 1500,
-      specialAllowance: 2000,
       bonus: 0,
       otherEarnings: 0,
       deductions: 0

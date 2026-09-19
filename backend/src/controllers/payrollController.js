@@ -252,28 +252,40 @@ exports.getEmployeeSalaryStructure = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Employee not found' });
     }
 
-    const basicNum = employee.salary?.basic || 72000;
-    const grossNum = employee.salary?.grossSalary || basicNum;
-    
-    const monthlySalary = employee.salary?.monthlySalary || (grossNum ? (grossNum / 12).toFixed(2) : '6,000.00');
-    const basicSalary = employee.salary?.basicSalary || (grossNum ? grossNum.toString() : '72,000.00');
+    let cleanMonthly = 0;
+    let cleanAnnual = 0;
 
-    const cleanMonthly = parseFloat(String(monthlySalary).replace(/[^0-9.]/g, '')) || (grossNum / 12);
-    const cleanAnnual = parseFloat(String(basicSalary).replace(/[^0-9.]/g, '')) || grossNum;
+    if (employee.salary) {
+      const mVal = parseFloat(String(employee.salary.monthlySalary || employee.salary.grossSalary || '').replace(/[^0-9.]/g, ''));
+      const aVal = parseFloat(String(employee.salary.basicSalary || employee.salary.annualBand || employee.salary.basic || '').replace(/[^0-9.]/g, ''));
+
+      if (!isNaN(mVal) && mVal > 0) {
+        cleanMonthly = mVal;
+        cleanAnnual = !isNaN(aVal) && aVal > 0 ? aVal : mVal * 12;
+      } else if (!isNaN(aVal) && aVal > 0) {
+        cleanAnnual = aVal;
+        cleanMonthly = aVal < 50000 ? aVal : Math.round(aVal / 12);
+      }
+    }
+
+    if (!cleanMonthly || isNaN(cleanMonthly) || cleanMonthly <= 0) {
+      cleanMonthly = 12000;
+      cleanAnnual = 144000;
+    }
 
     const salaryStructureData = {
       employeeId: employee._id,
       employeeName: `${employee.firstName} ${employee.lastName}`,
       employeeCode: employee.employeeCode,
       designation: employee.designation || 'Software Engineer',
-      monthlySalary: String(monthlySalary),
-      basicSalary: String(basicSalary),
+      monthlySalary: String(cleanMonthly),
+      basicSalary: String(cleanAnnual),
       monthlyBand: `₹${cleanMonthly.toLocaleString('en-IN', { maximumFractionDigits: 2 })} / Month`,
       annualBand: `₹${cleanAnnual.toLocaleString('en-IN')} / Annum`,
       basicPayRatio: '50%',
       hraRatio: '25%',
-      conveyance: 1500,
-      specialAllowance: 2000
+      conveyance: Math.round(cleanMonthly * 0.10),
+      specialAllowance: Math.round(cleanMonthly * 0.15)
     };
 
     res.status(200).json({
@@ -310,14 +322,28 @@ exports.generateMonthlyPayroll = async (req, res, next) => {
       const pdDays = paidDays !== undefined ? Number(paidDays) : (lopDays !== undefined ? Math.max(0, totDays - Number(lopDays)) : 30);
       const lDays = lopDays !== undefined ? Number(lopDays) : (totDays - pdDays > 0 ? totDays - pdDays : 0);
 
-      const basicSalary = emp.salary?.basic || 7000;
-      const hra = emp.salary?.hra || Math.round(basicSalary * 0.50); // 50% of basic (3,500)
-      const conveyance = emp.salary?.conveyance || 1500;
-      const specialAllowance = emp.salary?.specialAllowance || 2000;
+      let monthlyGross = 0;
+      if (emp.salary) {
+        const mVal = parseFloat(String(emp.salary.monthlySalary || emp.salary.grossSalary || '').replace(/[^0-9.]/g, ''));
+        const aVal = parseFloat(String(emp.salary.basicSalary || emp.salary.annualBand || emp.salary.basic || '').replace(/[^0-9.]/g, ''));
+
+        if (!isNaN(mVal) && mVal > 0) {
+          monthlyGross = mVal;
+        } else if (!isNaN(aVal) && aVal > 0) {
+          monthlyGross = aVal < 50000 ? aVal : Math.round(aVal / 12);
+        }
+      }
+      if (!monthlyGross || isNaN(monthlyGross) || monthlyGross <= 0) {
+        monthlyGross = 12000;
+      }
+
+      const fullGrossSalary = monthlyGross;
+      const basicSalary = Math.round(fullGrossSalary * 0.50);
+      const hra = Math.round(fullGrossSalary * 0.25);
+      const conveyance = Math.round(fullGrossSalary * 0.10);
+      const specialAllowance = Math.round(fullGrossSalary * 0.15);
       const bonus = emp.salary?.bonus || 0;
       const otherEarnings = emp.salary?.otherEarnings || 0;
-
-      const fullGrossSalary = emp.salary?.grossSalary || (basicSalary + hra + conveyance + specialAllowance + bonus + otherEarnings);
 
       // Leave Deduction = (Full Gross / Total Working Days) * LOP Days
       const leaveDeduction = lDays > 0 ? Math.round((fullGrossSalary / (totDays || 30)) * lDays) : 0;

@@ -23,11 +23,14 @@ export const EmployeeList = () => {
 
   const getActiveEmployees = (list) => {
     try {
-      const deleted = JSON.parse(localStorage.getItem('deleted_employee_ids') || '[]');
-      if (!Array.isArray(deleted) || deleted.length === 0) return list;
+      const deletedRaw = JSON.parse(localStorage.getItem('deleted_employee_ids') || '[]');
+      const deleted = (Array.isArray(deletedRaw) ? deletedRaw : []).filter(id => id && id !== 'undefined' && id !== 'null');
+      if (deleted.length === 0) return list;
       return list.filter((emp) => {
-        const isMongoDeleted = emp.mongoId && deleted.includes(String(emp.mongoId));
-        const isIdDeleted = emp.id && deleted.includes(String(emp.id));
+        const mId = emp.mongoId ? String(emp.mongoId) : null;
+        const eId = emp.id ? String(emp.id) : null;
+        const isMongoDeleted = mId && deleted.includes(mId);
+        const isIdDeleted = eId && deleted.includes(eId);
         return !isMongoDeleted && !isIdDeleted;
       });
     } catch (e) {
