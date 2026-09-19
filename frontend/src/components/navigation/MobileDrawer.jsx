@@ -17,7 +17,7 @@ export const MobileDrawer = ({ isOpen, onClose }) => {
     { path: '/hr/employees/add', label: 'Add Employee Wizard', icon: Users },
     { path: '/hr/attendance', label: 'Attendance & Regularization', icon: Clock },
     { path: '/hr/attendance/leave', label: 'Leave Approvals', icon: Calendar },
-    { path: '/hr/payroll', label: 'Payroll Processing', icon: DollarSign },
+    { path: '/hr/payroll/structures', label: 'Salary Structures & Payslips', icon: DollarSign },
     { path: '/hr/lifecycle/onboarding', label: 'Onboarding & Goals', icon: Award },
     { path: '/hr/work/projects', label: 'Projects & Tasks', icon: CheckSquare },
     { path: '/hr/reports', label: 'HR Analytics', icon: BarChart3 },

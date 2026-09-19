@@ -64,7 +64,6 @@ export const HRSidebar = ({ collapsed, onToggle }) => {
       label: 'PAYROLL',
       icon: DollarSign,
       items: [
-        { path: '/hr/payroll', label: 'Payroll Processing' },
         { path: '/hr/payroll/structures', label: 'Salary Structures' },
         { path: '/hr/payroll/payslips', label: 'Payslips' }
       ]

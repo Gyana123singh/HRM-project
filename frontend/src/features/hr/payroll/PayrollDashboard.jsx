@@ -265,17 +265,15 @@ export const PayrollDashboard = () => {
 
   // Map route to active tab
   const getActiveTab = () => {
-    if (location.pathname.includes('/structures')) return 'structures';
     if (location.pathname.includes('/payslips')) return 'payslips';
-    return 'processing';
+    return 'structures';
   };
 
   const activeTab = getActiveTab();
 
   const handleTabChange = (tabId) => {
-    if (tabId === 'structures') navigate('/hr/payroll/structures');
-    else if (tabId === 'payslips') navigate('/hr/payroll/payslips');
-    else navigate('/hr/payroll');
+    if (tabId === 'payslips') navigate('/hr/payroll/payslips');
+    else navigate('/hr/payroll/structures');
   };
 
   // Helper to get non-deleted salary structures
@@ -484,7 +482,6 @@ export const PayrollDashboard = () => {
   }, []);
 
   const payrollTabs = [
-    { id: 'processing', label: 'Payroll Processing' },
     { id: 'structures', label: `Salary Structures (${structuresList.length})` },
     { id: 'payslips', label: `Payslips Archive (${payslipsList.length})` }
   ];
@@ -870,76 +867,7 @@ export const PayrollDashboard = () => {
         </div>
       )}
 
-      {/* TAB 1: PAYROLL PROCESSING WIZARD */}
-      {!loading && activeTab === 'processing' && (
-        <div className="space-y-6">
-          {/* KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <StatCard
-              title="Total Payroll Budget"
-              value={stats.totalBudget || '₹4,85,000.00'}
-              description="July 2026 Cycle"
-              icon={DollarSign}
-              iconBg="bg-[#f2f8e8] text-[#59781b]"
-            />
-            <StatCard
-              title="Employees Processed"
-              value={stats.processedCount || '387/389'}
-              description="97% Completed"
-              icon={CheckCircle}
-              iconBg="bg-[#f0edf7] text-[#534675]"
-            />
-            <StatCard
-              title="Pending Approvals"
-              value={stats.pendingCount !== undefined ? String(stats.pendingCount) : '2'}
-              description="Arrears & Adjustments"
-              icon={Calculator}
-              iconBg="bg-amber-50 text-amber-600 border border-amber-200"
-            />
-          </div>
 
-          {/* Monthly Payroll Processing Wizard */}
-          <Card className="space-y-6 bg-white border border-slate-200 shadow-xs">
-            <div>
-              <h3 className="text-lg font-bold text-[#2c2738]">July 2026 Monthly Payroll Processing Wizard</h3>
-              <p className="text-xs text-slate-500">Automated salary calculation engine (Infotattva Format)</p>
-            </div>
-
-            {/* Wizard Steps */}
-            <div className="grid grid-cols-4 gap-2 bg-slate-100 p-2 rounded-2xl border border-slate-200">
-              <div className={`p-3 rounded-xl text-xs font-bold text-center ${wizardStep >= 1 ? 'bg-[#534675] text-white' : 'text-slate-500'}`}>
-                1. Select Month
-              </div>
-              <div className={`p-3 rounded-xl text-xs font-bold text-center ${wizardStep >= 2 ? 'bg-[#534675] text-white' : 'text-slate-500'}`}>
-                2. Calculate Salaries
-              </div>
-              <div className={`p-3 rounded-xl text-xs font-bold text-center ${wizardStep >= 3 ? 'bg-[#534675] text-white' : 'text-slate-500'}`}>
-                3. Review Adjustments
-              </div>
-              <div className={`p-3 rounded-xl text-xs font-bold text-center ${wizardStep >= 4 ? 'bg-[#9ec64c] text-white' : 'text-slate-500'}`}>
-                4. Approve & Dispatch
-              </div>
-            </div>
-
-            <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div>
-                  <h4 className="text-base font-bold text-[#2c2738]">Cycle Summary: {stats.cycleSummary || 'July 1 - July 31, 2026'}</h4>
-                  <p className="text-xs text-slate-500 mt-0.5">Automated payroll calculation with instant Infotattva payslip generation.</p>
-                </div>
-                <Button
-                  onClick={handleRunWizard}
-                  isLoading={isProcessing}
-                  variant="primary"
-                  icon={Play}
-                >
-                  {wizardStep === 4 ? 'Re-Run Payroll Engine' : 'Execute Payroll Calculation'}
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
 
       {/* TAB 2: SALARY STRUCTURES */}
       {!loading && activeTab === 'structures' && (
