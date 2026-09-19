@@ -433,7 +433,10 @@ export const HRDashboard = () => {
       </Card>
 
       {/* Action Floating Assistant Drawer / Trigger */}
-      <div className="flex justify-end pt-2">
+      <div className="flex flex-col sm:flex-row justify-end items-center gap-3 pt-2">
+        <Button onClick={() => navigate('/hr/ai/assistant')} variant="primary" icon={Sparkles}>
+          Ask Real-Time AI HR Assistant
+        </Button>
         <Button onClick={() => setIsAncModalOpen(true)} variant="secondary" icon={Megaphone}>
           Publish Company Announcement
         </Button>
