@@ -73,15 +73,15 @@ const EmployeeSchema = new mongoose.Schema(
     },
     workLocation: {
       type: String,
-      default: 'Bhubaneswar / Remote'
+      default: 'Bhubaneswar'
     },
     bankName: {
       type: String,
-      default: 'HDFC Bank'
+      default: 'Union Bank of India'
     },
     accountNumber: {
       type: String,
-      default: 'XXXXX1234'
+      default: '88492014421'
     },
     salary: {
       basic: { type: Number, default: 7000 },

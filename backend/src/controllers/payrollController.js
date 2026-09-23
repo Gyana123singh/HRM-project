@@ -110,7 +110,7 @@ exports.getPayrollDashboardStats = async (req, res, next) => {
 // @access  Private (Admin, HR)
 exports.getSalaryStructures = async (req, res, next) => {
   try {
-    const structures = await SalaryStructure.find();
+    const structures = await SalaryStructure.find().sort({ createdAt: -1 });
     res.status(200).json({ success: true, count: structures.length, data: structures });
   } catch (error) {
     next(error);
@@ -142,7 +142,7 @@ exports.createSalaryStructure = async (req, res, next) => {
     }
 
     const structure = await SalaryStructure.create({
-      structureId: `STR-0${count + 1}`,
+      structureId: `STR-${Date.now().toString().slice(-6)}`,
       name: name || 'Standard Pay Structure',
       band: finalAnnualBand || '₹6,00,000 / Annum',
       monthlyBand: finalMonthlyBand || '₹50,000 / Month',
@@ -365,9 +365,9 @@ exports.generateMonthlyPayroll = async (req, res, next) => {
         year: yearNum,
         payDate: new Date(),
         panNumber: emp.panNumber || 'ABCDE1234F',
-        workLocation: emp.workLocation || 'Bhubaneswar / Remote',
-        bankName: emp.bankName || 'HDFC Bank',
-        accountNumber: emp.accountNumber || 'XXXXX1234',
+        workLocation: emp.workLocation || 'Bhubaneswar',
+        bankName: emp.bankName || 'Union Bank of India',
+        accountNumber: emp.accountNumber || '88492014421',
         totalWorkingDays: totDays,
         paidDays: pdDays,
         lopDays: lDays,
@@ -476,12 +476,12 @@ exports.getAllPayslips = async (req, res, next) => {
         department,
         joiningDate: emp?.joiningDate ? new Date(emp.joiningDate).toLocaleDateString('en-IN') : '01/06/2023',
         panNumber: p.panNumber || emp?.panNumber || 'ABCDE1234F',
-        workLocation: p.workLocation || emp?.workLocation || 'Bhubaneswar / Remote',
-        bankName: p.bankName || emp?.bankName || 'HDFC Bank',
-        accountNumber: p.accountNumber || emp?.accountNumber || 'XXXXX1234',
-        totalWorkingDays: totDays,
-        paidDays: pdDays,
-        lopDays: lDays,
+        workLocation: p.workLocation || emp?.workLocation || 'Bhubaneswar',
+        bankName: p.bankName || emp?.bankName || 'Union Bank of India',
+        accountNumber: p.accountNumber || emp?.accountNumber || '88492014421',
+        totalWorkingDays: Math.round(totDays),
+        paidDays: Math.round(pdDays),
+        lopDays: Math.round(lDays),
         month: monthStr,
         rawMonth: p.month,
         rawYear: p.year,
@@ -597,12 +597,12 @@ exports.getMyPayslips = async (req, res, next) => {
         department,
         joiningDate: emp?.joiningDate ? new Date(emp.joiningDate).toLocaleDateString('en-IN') : '01/06/2023',
         panNumber: p.panNumber || emp?.panNumber || 'ABCDE1234F',
-        workLocation: p.workLocation || emp?.workLocation || 'Bhubaneswar / Remote',
-        bankName: p.bankName || emp?.bankName || 'HDFC Bank',
-        accountNumber: p.accountNumber || emp?.accountNumber || 'XXXXX1234',
-        totalWorkingDays: totDays,
-        paidDays: pdDays,
-        lopDays: lDays,
+        workLocation: p.workLocation || emp?.workLocation || 'Bhubaneswar',
+        bankName: p.bankName || emp?.bankName || 'Union Bank of India',
+        accountNumber: p.accountNumber || emp?.accountNumber || '88492014421',
+        totalWorkingDays: Math.round(totDays),
+        paidDays: Math.round(pdDays),
+        lopDays: Math.round(lDays),
         month: monthStr,
         rawMonth: p.month,
         rawYear: p.year,

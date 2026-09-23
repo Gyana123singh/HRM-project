@@ -18,6 +18,7 @@ export const AddEmployeeWizard = () => {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
+    employeeCode: '',
     firstName: '',
     lastName: '',
     email: '',
@@ -167,7 +168,8 @@ export const AddEmployeeWizard = () => {
     }
 
     setIsSubmitting(true);
-    const empCode = `EMP-${Math.floor(100 + Math.random() * 900)}`;
+    const userDefinedCode = formData.employeeCode?.trim();
+    const empCode = userDefinedCode || `EMP-${Math.floor(100 + Math.random() * 900)}`;
     const numericSalary = parseFloat(String(formData.basicSalary).replace(/[^0-9.]/g, '')) || 75000;
 
     const payload = {
@@ -184,6 +186,8 @@ export const AddEmployeeWizard = () => {
       employmentType: formData.employmentType || 'Full-time',
       status: 'Active',
       role: formData.role || 'Employee',
+      bankName: formData.bankName ? formData.bankName.trim() : 'Union Bank of India',
+      accountNumber: formData.accountNumber ? formData.accountNumber.trim() : '88492014421',
       salary: {
         basic: numericSalary,
         monthlySalary: formData.monthlySalary,
@@ -214,6 +218,8 @@ export const AddEmployeeWizard = () => {
       localStorage.setItem('latest_employee_salary', JSON.stringify(salaryObj));
 
       addStoreEmp({
+        id: createdData.employeeCode || empCode,
+        employeeCode: createdData.employeeCode || empCode,
         name: `${formData.firstName} ${formData.lastName}`,
         email: formData.email,
         phone: formData.phone,
@@ -222,6 +228,8 @@ export const AddEmployeeWizard = () => {
         branch: formData.branch,
         joinDate: formData.joinDate,
         employmentType: formData.employmentType,
+        bankName: formData.bankName || 'Union Bank of India',
+        accountNumber: formData.accountNumber || '88492014421',
         monthlySalary: formData.monthlySalary,
         basicSalary: formData.basicSalary,
         monthlyBand: salaryObj.monthlyBand,
@@ -338,6 +346,12 @@ export const AddEmployeeWizard = () => {
                 Step 2: Employment & Role Details
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Input
+                  label="Employee ID / Code"
+                  placeholder="e.g. EMP-1025 (Auto-generated if blank)"
+                  value={formData.employeeCode}
+                  onChange={(e) => setFormData({ ...formData, employeeCode: e.target.value })}
+                />
                 <Select
                   label="Department"
                   value={formData.department}

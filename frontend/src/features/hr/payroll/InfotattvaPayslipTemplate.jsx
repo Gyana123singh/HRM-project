@@ -18,14 +18,16 @@ export const InfotattvaPayslipTemplate = ({ payslip }) => {
   const empCode = payslip.employeeId?.employeeCode || payslip.employeeId || 'EMP-0001';
   const designation = payslip.designation || payslip.employeeId?.designation || 'Senior Software Engineer';
   const department = payslip.department || payslip.employeeId?.department?.name || payslip.employeeId?.department || 'Engineering';
-  const joiningDate = payslip.joiningDate || (payslip.employeeId?.joiningDate ? new Date(payslip.employeeId.joiningDate).toLocaleDateString('en-IN') : '12/06/2023');
-  const workLocation = payslip.workLocation || payslip.employeeId?.workLocation || 'Bhubaneswar';
-  const panNumber = payslip.panNumber || payslip.employeeId?.panNumber || 'ABCDE1234F';
-  const bankName = payslip.bankName || payslip.employeeId?.bankName || 'HDFC Bank';
-  const accountNumber = payslip.accountNumber || payslip.employeeId?.accountNumber || 'XXXXX1234';
-  const totalWorkingDays = payslip.totalWorkingDays !== undefined ? Number(payslip.totalWorkingDays).toFixed(1) : '30.0';
-  const paidDays = payslip.paidDays !== undefined ? Number(payslip.paidDays).toFixed(1) : '30.0';
-  const lopDays = payslip.lopDays !== undefined ? Number(payslip.lopDays).toFixed(1) : '0.0';
+  const joiningDate = payslip.joiningDate || (payslip.employeeId?.joiningDate ? new Date(payslip.employeeId.joiningDate).toLocaleDateString('en-IN') : (payslip.employeeId?.joinDate || '12/06/2023'));
+  const rawWorkLoc = payslip.workLocation || payslip.employeeId?.workLocation || payslip.employeeId?.branch || 'Bhubaneswar';
+  const workLocation = String(rawWorkLoc).replace(/\s*\/\s*Remote/gi, '').replace(/\s*Remote/gi, '').trim() || 'Bhubaneswar';
+  const rawBankName = (payslip.bankName && payslip.bankName !== 'HDFC Bank') ? payslip.bankName : (payslip.employeeId?.bankName && payslip.employeeId?.bankName !== 'HDFC Bank' ? payslip.employeeId.bankName : 'Union Bank of India');
+  const bankName = rawBankName || 'Union Bank of India';
+  const rawAccNum = (payslip.accountNumber && payslip.accountNumber !== 'XXXXX1234') ? payslip.accountNumber : (payslip.employeeId?.accountNumber && payslip.employeeId?.accountNumber !== 'XXXXX1234' ? payslip.employeeId.accountNumber : '88492014421');
+  const accountNumber = rawAccNum || '88492014421';
+  const totalWorkingDays = payslip.totalWorkingDays !== undefined ? Math.round(Number(payslip.totalWorkingDays)) : 30;
+  const paidDays = payslip.paidDays !== undefined ? Math.round(Number(payslip.paidDays)) : 30;
+  const lopDays = payslip.lopDays !== undefined ? Math.round(Number(payslip.lopDays)) : 0;
 
   const month = payslip.month || 'July 2026';
   const payDate = payslip.payDate || '28/07/2026';
@@ -44,9 +46,9 @@ export const InfotattvaPayslipTemplate = ({ payslip }) => {
       : 14000
   );
 
-  const totDaysNum = Number(totalWorkingDays) || 30;
-  const numLopDays = Number(lopDays) || 0;
-  const paidDaysNum = Number(paidDays) || (totDaysNum - numLopDays);
+  const totDaysNum = Math.round(Number(totalWorkingDays)) || 30;
+  const numLopDays = Math.round(Number(lopDays)) || 0;
+  const paidDaysNum = payslip.paidDays !== undefined ? Math.round(Number(payslip.paidDays)) : (totDaysNum - numLopDays);
 
   // Leave Deduction = (Full Base Gross / Total Working Days) * LOP Days
   const leaveDeduction = payslip.deductionsObj?.unpaidLeaves !== undefined 
@@ -170,24 +172,24 @@ export const InfotattvaPayslipTemplate = ({ payslip }) => {
               </tr>
               {/* Row 4 */}
               <tr style={{ borderBottom: '1px solid #c5d0dc' }}>
-                <td className="px-3 py-1.5 font-bold" style={{ backgroundColor: '#f4f7fa', color: '#0f2942' }}>PAN</td>
-                <td className="px-3 py-1.5 italic font-mono" style={{ color: '#334155', borderRight: '1px solid #c5d0dc' }}>{panNumber}</td>
-                <td className="px-3 py-1.5 font-bold" style={{ backgroundColor: '#f4f7fa', color: '#0f2942' }}>Total Working Days</td>
-                <td className="px-3 py-1.5 italic" style={{ color: '#334155' }}>{totDaysNum.toFixed(1)}</td>
-              </tr>
-              {/* Row 5 */}
-              <tr style={{ borderBottom: '1px solid #c5d0dc' }}>
                 <td className="px-3 py-1.5 font-bold" style={{ backgroundColor: '#f4f7fa', color: '#0f2942' }}>Bank Name</td>
                 <td className="px-3 py-1.5 italic" style={{ color: '#334155', borderRight: '1px solid #c5d0dc' }}>{bankName}</td>
                 <td className="px-3 py-1.5 font-bold" style={{ backgroundColor: '#f4f7fa', color: '#0f2942' }}>Account Number</td>
                 <td className="px-3 py-1.5 italic font-mono" style={{ color: '#334155' }}>{accountNumber}</td>
               </tr>
+              {/* Row 5 */}
+              <tr style={{ borderBottom: '1px solid #c5d0dc' }}>
+                <td className="px-3 py-1.5 font-bold" style={{ backgroundColor: '#f4f7fa', color: '#0f2942' }}>Total Working Days</td>
+                <td className="px-3 py-1.5 italic" style={{ color: '#334155', borderRight: '1px solid #c5d0dc' }}>{totDaysNum}</td>
+                <td className="px-3 py-1.5 font-bold" style={{ backgroundColor: '#f4f7fa', color: '#0f2942' }}>Paid Days</td>
+                <td className="px-3 py-1.5 italic font-bold text-emerald-700" style={{ color: '#15803d' }}>{paidDaysNum}</td>
+              </tr>
               {/* Row 6 */}
               <tr>
-                <td className="px-3 py-1.5 font-bold" style={{ backgroundColor: '#f4f7fa', color: '#0f2942' }}>Paid Days</td>
-                <td className="px-3 py-1.5 italic font-bold text-emerald-700" style={{ color: '#15803d', borderRight: '1px solid #c5d0dc' }}>{paidDaysNum.toFixed(1)}</td>
                 <td className="px-3 py-1.5 font-bold" style={{ backgroundColor: '#f4f7fa', color: '#0f2942' }}>LOP Days (Unpaid Leave)</td>
-                <td className="px-3 py-1.5 italic font-bold text-rose-600" style={{ color: numLopDays > 0 ? '#b91c1c' : '#334155' }}>{numLopDays.toFixed(1)}</td>
+                <td className="px-3 py-1.5 italic font-bold text-rose-600" style={{ color: numLopDays > 0 ? '#b91c1c' : '#334155', borderRight: '1px solid #c5d0dc' }}>{numLopDays}</td>
+                <td className="px-3 py-1.5 font-bold" style={{ backgroundColor: '#f4f7fa', color: '#0f2942' }}></td>
+                <td className="px-3 py-1.5 italic" style={{ color: '#334155' }}></td>
               </tr>
             </tbody>
           </table>
@@ -300,7 +302,7 @@ export const InfotattvaPayslipTemplate = ({ payslip }) => {
               <tr>
                 <td className="px-3 py-2 font-bold" style={{ backgroundColor: '#f4f7fa', color: '#0f2942' }}>Payment Mode</td>
                 <td className="px-3 py-2 italic" style={{ color: '#1e293b' }}>
-                  {paymentMode} &nbsp;|&nbsp; Transaction Ref.: <span className="font-mono">{transactionRef}</span>
+                  {paymentMode}
                 </td>
               </tr>
             </tbody>
@@ -310,12 +312,32 @@ export const InfotattvaPayslipTemplate = ({ payslip }) => {
 
       {/* 6. Signatory Footer */}
       <div className="pt-4 mt-6 flex justify-end text-[10.5px]">
-        <div className="text-right space-y-6">
-          <p className="font-extrabold" style={{ color: '#0f2942' }}>
+        <div className="text-right space-y-1 relative">
+          <p className="font-extrabold pb-1" style={{ color: '#0f2942' }}>
             For Infotattva Business Solutions (OPC) Private Limited
           </p>
+
+          {/* Stamp & Signature Container */}
+          <div className="relative h-24 w-64 ml-auto flex items-center justify-end my-1 overflow-visible">
+            {/* Rubber Stamp (Blue Circular Seal Image) */}
+            <img 
+              src="/sealOfinfo.jpeg" 
+              alt="Infotattva Rubber Stamp Seal" 
+              className="absolute right-24 -top-3 w-28 h-28 object-contain opacity-95 select-none pointer-events-none" 
+              style={{ mixBlendMode: 'multiply', transform: 'rotate(-4deg)' }}
+            />
+
+            {/* Handwritten Signature Image */}
+            <img 
+              src="/sign.jpeg" 
+              alt="Jyoti Prasad Tripathy Signature" 
+              className="absolute right-2 -top-2 w-52 h-20 object-contain z-10 select-none pointer-events-none" 
+              style={{ mixBlendMode: 'multiply' }}
+            />
+          </div>
+
           <div className="w-56 ml-auto" style={{ borderBottom: '1.5px solid #475569' }}></div>
-          <div>
+          <div className="pt-1">
             <p className="font-extrabold text-[11px]" style={{ color: '#0f2942' }}>J. P. Tripathy</p>
             <p className="font-semibold" style={{ color: '#556070' }}>Director & Authorised Signatory</p>
           </div>

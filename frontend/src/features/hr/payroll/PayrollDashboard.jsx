@@ -125,17 +125,9 @@ const formatDeductions = (val) => {
   return cleanNum === 1 ? '1 Day' : `${cleanNum} Days`;
 };
 
-const initialStructures = [
-  { id: 'STR-01', name: 'Executive Level (L7)', basic: '50%', hra: '25%', conveyance: '10%', specialAllowance: '15%', bonus: '0%', otherEarnings: '0%', deductions: '0 Days', membersCount: 12, band: '₹18,00,000 / Annum', monthlyBand: '₹1,50,000 / Month', effectiveDate: '2026-09-01', month: 'September', year: 2026 },
-  { id: 'STR-02', name: 'Senior Engineering (L5)', basic: '50%', hra: '25%', conveyance: '10%', specialAllowance: '15%', bonus: '0%', otherEarnings: '0%', deductions: '0 Days', membersCount: 45, band: '₹12,00,000 / Annum', monthlyBand: '₹1,00,000 / Month', effectiveDate: '2026-09-01', month: 'September', year: 2026 },
-  { id: 'STR-03', name: 'Mid-Level Professional (L4)', basic: '50%', hra: '25%', conveyance: '10%', specialAllowance: '15%', bonus: '0%', otherEarnings: '0%', deductions: '0 Days', membersCount: 120, band: '₹6,00,000 / Annum', monthlyBand: '₹50,000 / Month', effectiveDate: '2026-09-01', month: 'September', year: 2026 },
-  { id: 'STR-04', name: 'Associate Band (L2-L3)', basic: '50%', hra: '25%', conveyance: '10%', specialAllowance: '15%', bonus: '0%', otherEarnings: '0%', deductions: '0 Days', membersCount: 180, band: '₹3,50,000 / Annum', monthlyBand: '₹29,167 / Month', effectiveDate: '2026-09-01', month: 'September', year: 2026 }
-];
+const initialStructures = [];
 
-const initialPayslips = [
-  { id: 'PAY-701', payslipCode: 'PAY-701', employeeName: 'Rahul Sharma', employeeId: 'EMP-0001', month: 'July 2026', designation: 'Senior Software Engineer', department: 'Engineering', joiningDate: '12/06/2023', workLocation: 'Bhubaneswar', panNumber: 'ABCDE1234F', bankName: 'HDFC Bank', accountNumber: '5010049281723', totalWorkingDays: 30, paidDays: 30, lopDays: 0, basic: 7000, hra: 3500, conveyance: 1500, specialAllowance: 2000, bonus: 0, otherEarnings: 0, gross: '₹14,000.00', grossRaw: 14000, netSalary: '₹14,000.00', netSalaryRaw: 14000, amountInWords: 'Indian Rupees Fourteen Thousand Only', paymentMode: 'Bank Transfer', transactionRef: 'TXN-982710492', status: 'Paid' },
-  { id: 'PAY-702', payslipCode: 'PAY-702', employeeName: 'Sarah Jenkins', employeeId: 'EMP-0002', month: 'July 2026', designation: 'HR Operations Manager', department: 'Human Resources', joiningDate: '01/03/2024', workLocation: 'Bhubaneswar', panNumber: 'FGHIJ5678K', bankName: 'ICICI Bank', accountNumber: '629101928374', totalWorkingDays: 30, paidDays: 30, lopDays: 0, basic: 7000, hra: 3500, conveyance: 1500, specialAllowance: 2000, bonus: 0, otherEarnings: 0, gross: '₹14,000.00', grossRaw: 14000, netSalary: '₹14,000.00', netSalaryRaw: 14000, amountInWords: 'Indian Rupees Fourteen Thousand Only', paymentMode: 'Bank Transfer', transactionRef: 'TXN-982710493', status: 'Paid' }
-];
+const initialPayslips = [];
 
 export const PayrollDashboard = () => {
   const location = useLocation();
@@ -147,11 +139,11 @@ export const PayrollDashboard = () => {
 
   // Stats & Lists
   const [stats, setStats] = useState(payrollData);
-  const [structuresList, setStructuresList] = useState(initialStructures);
-  const [payslipsList, setPayslipsList] = useState(initialPayslips);
+  const [structuresList, setStructuresList] = useState([]);
+  const [payslipsList, setPayslipsList] = useState([]);
   const [dbEmployeesList, setDbEmployeesList] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedMonthFilter, setSelectedMonthFilter] = useState('September 2026');
+  const [selectedMonthFilter, setSelectedMonthFilter] = useState('All');
 
   // Modals state
   const [isAddStructureOpen, setIsAddStructureOpen] = useState(false);
@@ -296,7 +288,7 @@ export const PayrollDashboard = () => {
         .filter((id) => id && id !== 'undefined' && id !== 'null');
 
       if (deleted.length === 0) return list;
-      return list.filter((s) => {
+      const filtered = list.filter((s) => {
         const mId = s._id ? String(s._id) : null;
         const sId = s.id ? String(s.id) : null;
         const structId = s.structureId ? String(s.structureId) : null;
@@ -307,6 +299,8 @@ export const PayrollDashboard = () => {
 
         return !isMongoDeleted && !isIdDeleted && !isStructIdDeleted;
       });
+
+      return filtered;
     } catch (e) {
       return list;
     }
@@ -396,14 +390,13 @@ export const PayrollDashboard = () => {
         localCustom = JSON.parse(localStorage.getItem('custom_salary_structures') || '[]');
       } catch (e) {}
 
-      // Filter localCustom to remove items already returned from MongoDB backend or matching by name/ID
-      const cleanLocalCustom = localCustom.filter((loc) => {
-        const locName = (loc.name || '').trim().toLowerCase();
+      // Filter localCustom to remove items already returned from MongoDB backend by ID
+      const cleanLocalCustom = (Array.isArray(localCustom) ? localCustom : []).filter((loc) => {
+        if (!loc) return false;
         const locId = loc._id || loc.id || loc.structureId;
         const existsInBackend = fetchedStructures.some((f) => {
-          const fName = (f.name || '').trim().toLowerCase();
           const fId = f._id || f.id || f.structureId;
-          return (locName && fName && locName === fName) || (locId && fId && String(locId) === String(fId));
+          return locId && fId && String(locId) === String(fId);
         });
         return !existsInBackend;
       });
@@ -413,22 +406,14 @@ export const PayrollDashboard = () => {
       } catch (e) {}
 
       const combinedStructures = [...fetchedStructures, ...cleanLocalCustom];
-      initialStructures.forEach((initStr) => {
-        const initName = (initStr.name || '').trim().toLowerCase();
-        const exists = combinedStructures.some(
-          (s) => s.id === initStr.id || (s.name || '').trim().toLowerCase() === initName || s._id === initStr.id
-        );
-        if (!exists) {
-          combinedStructures.push(initStr);
-        }
-      });
 
       setStructuresList(() => {
         const uniqueMap = new Map();
         combinedStructures.forEach((item) => {
-          const nameKey = (item.name || '').trim().toLowerCase() || item._id || item.id;
-          if (nameKey && !uniqueMap.has(nameKey)) {
-            uniqueMap.set(nameKey, item);
+          if (!item) return;
+          const key = item._id ? String(item._id) : (item.id ? String(item.id) : (item.structureId ? String(item.structureId) : `${(item.name || '').trim().toLowerCase()}-${item.month}-${item.year}`));
+          if (key && !uniqueMap.has(key)) {
+            uniqueMap.set(key, item);
           }
         });
 
@@ -445,7 +430,7 @@ export const PayrollDashboard = () => {
         localCustomSlips = JSON.parse(localStorage.getItem('custom_payslips') || '[]');
       } catch (e) {}
 
-      const combinedSlips = [...localCustomSlips, ...fetchedSlips, ...initialPayslips];
+      const combinedSlips = [...localCustomSlips, ...fetchedSlips];
       const uniqueSlips = new Map();
       combinedSlips.forEach((p) => {
         const key = p._id || p.id || p.payslipCode;
@@ -458,11 +443,13 @@ export const PayrollDashboard = () => {
 
       const storeEmps = (useHRStore.getState()?.employees || []).map((mEmp) => ({
         _id: mEmp.id || `MOCK-${mEmp.email}`,
-        employeeCode: mEmp.id || `EMP-${Math.floor(100 + Math.random() * 900)}`,
+        employeeCode: mEmp.employeeCode || mEmp.id || `EMP-${Math.floor(100 + Math.random() * 900)}`,
         firstName: mEmp.firstName || (mEmp.name ? mEmp.name.split(' ')[0] : 'New'),
         lastName: mEmp.lastName || (mEmp.name && mEmp.name.split(' ').length > 1 ? mEmp.name.split(' ').slice(1).join(' ') : 'Employee'),
         department: { name: mEmp.department || 'General' },
         designation: mEmp.designation || 'Staff Member',
+        bankName: mEmp.bankName || 'Union Bank of India',
+        accountNumber: mEmp.accountNumber || '88492014421',
         status: mEmp.status || 'Active',
         salary: {
           monthlySalary: mEmp.monthlySalary,
@@ -482,8 +469,6 @@ export const PayrollDashboard = () => {
       setDbEmployeesList(mergedEmps);
     } catch (err) {
       console.error('Failed to load payroll data:', err);
-      setStructuresList((prev) => getActiveStructures(prev.length > 0 ? prev : initialStructures));
-      setPayslipsList(getActivePayslips(initialPayslips));
     } finally {
       setLoading(false);
     }
@@ -547,41 +532,48 @@ export const PayrollDashboard = () => {
       membersCount: 0
     };
 
-    setStructuresList((prev) => {
-      const filtered = (prev || []).filter(
-        (s) => (s.name || '').trim().toLowerCase() !== (newStructure.name || '').trim().toLowerCase()
-      );
-      return [createdItem, ...filtered];
-    });
+    // Immediately prepend to local structures state
+    setStructuresList((prev) => [createdItem, ...(prev || [])]);
 
+    // Save to custom_salary_structures local cache
     try {
       const existingCustom = JSON.parse(localStorage.getItem('custom_salary_structures') || '[]');
-      const filteredCustom = existingCustom.filter(
-        (s) => (s.name || '').trim().toLowerCase() !== (newStructure.name || '').trim().toLowerCase()
+      const cleanCustom = (Array.isArray(existingCustom) ? existingCustom : []).filter(
+        (s) => s && String(s._id || s.id || s.structureId) !== String(createdItem._id || createdItem.id)
       );
-      localStorage.setItem('custom_salary_structures', JSON.stringify([createdItem, ...filteredCustom]));
+      localStorage.setItem('custom_salary_structures', JSON.stringify([createdItem, ...cleanCustom]));
     } catch (e) {
       console.log('Error caching custom structure to localStorage:', e);
     }
 
     try {
       const res = await payrollApi.createSalaryStructure(payload);
-      if (res?.success || res?.data) {
+      const savedObj = res?.data || res?.structure;
+
+      if (res?.success || savedObj) {
         toast.success(`Salary structure "${newStructure.name}" saved successfully!`);
-        if (res.data) {
+        if (savedObj) {
           try {
             const existingCustom = JSON.parse(localStorage.getItem('custom_salary_structures') || '[]');
-            const filteredCustom = existingCustom.filter(
-              (s) => (s.name || '').trim().toLowerCase() !== (newStructure.name || '').trim().toLowerCase()
+            const filteredCustom = (Array.isArray(existingCustom) ? existingCustom : []).filter(
+              (s) => s && String(s._id || s.id || s.structureId) !== String(createdItem._id || createdItem.id) && String(s._id || s.id || s.structureId) !== String(savedObj._id || savedObj.id || savedObj.structureId)
             );
-            localStorage.setItem('custom_salary_structures', JSON.stringify([res.data, ...filteredCustom]));
+            localStorage.setItem('custom_salary_structures', JSON.stringify([savedObj, ...filteredCustom]));
           } catch (e) {}
+
+          setStructuresList((prev) => {
+            const updated = (prev || []).map((s) =>
+              (s._id === createdItem._id || s.id === createdItem.id) ? savedObj : s
+            );
+            const exists = updated.some((s) => (s._id || s.id || s.structureId) === (savedObj._id || savedObj.id || savedObj.structureId));
+            return exists ? updated : [savedObj, ...updated];
+          });
         }
         fetchPayrollData();
       }
     } catch (err) {
-      console.error('Error creating structure:', err);
-      toast.success(`Salary structure "${newStructure.name}" saved!`);
+      console.error('Error creating structure on backend:', err);
+      toast.success(`Salary structure "${newStructure.name}" saved locally!`);
     } finally {
       setIsAddStructureOpen(false);
       setNewStructure({
@@ -762,14 +754,13 @@ export const PayrollDashboard = () => {
         month: monthFormattedStr,
         designation: targetEmp?.designation || 'Software Engineer',
         department: targetEmp?.department?.name || targetEmp?.department || 'Engineering',
-        joiningDate: '01/06/2023',
-        workLocation: 'Bhubaneswar / Remote',
-        panNumber: targetEmp?.panNumber || 'ABCDE1234F',
-        bankName: targetEmp?.bankName || 'HDFC Bank',
-        accountNumber: targetEmp?.accountNumber || 'XXXXX1234',
-        totalWorkingDays: totDays,
-        paidDays: pdDays,
-        lopDays: lopDays,
+        joiningDate: targetEmp?.joiningDate ? new Date(targetEmp.joiningDate).toLocaleDateString('en-IN') : (targetEmp?.joinDate || '01/06/2023'),
+        workLocation: targetEmp?.workLocation || targetEmp?.branch || 'Bhubaneswar',
+        bankName: targetEmp?.bankName || 'Union Bank of India',
+        accountNumber: targetEmp?.accountNumber || '88492014421',
+        totalWorkingDays: Math.round(totDays),
+        paidDays: Math.round(pdDays),
+        lopDays: Math.round(lopDays),
         basic: Math.round(realGross * 0.50),
         hra: Math.round(realGross * 0.25),
         conveyance: Math.round(realGross * 0.10),
@@ -799,9 +790,9 @@ export const PayrollDashboard = () => {
           month: newPayslip.month || 7,
           year: newPayslip.year || 2026,
           employeeId: newPayslip.employeeId || undefined,
-          totalWorkingDays: newPayslip.totalWorkingDays,
-          paidDays: newPayslip.paidDays,
-          lopDays: newPayslip.lopDays,
+          totalWorkingDays: Math.round(totDays),
+          paidDays: Math.round(pdDays),
+          lopDays: Math.round(lopDays),
           paymentMode: newPayslip.paymentMode,
           transactionRef: newPayslip.transactionRef
         });
@@ -820,21 +811,41 @@ export const PayrollDashboard = () => {
   };
 
   const handleViewPayslip = async (pay) => {
+    let fullPayData = pay;
     try {
       if (pay._id) {
         const res = await payrollApi.getPayslipById(pay._id);
         if (res?.data) {
-          setSelectedPayslip(res.data);
-          setIsViewPayslipOpen(true);
-          return;
+          fullPayData = res.data;
         }
       }
-      setSelectedPayslip(pay);
-      setIsViewPayslipOpen(true);
     } catch (err) {
-      setSelectedPayslip(pay);
-      setIsViewPayslipOpen(true);
+      console.log('Backend getPayslipById fallback:', err.message);
     }
+
+    // Lookup real employee data from dbEmployeesList or storeEmployees
+    const allEmps = [...dbEmployeesList, ...storeEmployees];
+    const empCodeOrId = fullPayData.employeeId?.employeeCode || fullPayData.employeeId?._id || fullPayData.employeeId || fullPayData.employeeCode;
+    const matchedEmp = allEmps.find(
+      (e) => e.employeeCode === empCodeOrId || e._id === empCodeOrId || e.id === empCodeOrId || `${e.firstName || ''} ${e.lastName || ''}`.trim() === fullPayData.employeeName || e.name === fullPayData.employeeName
+    );
+
+    if (matchedEmp) {
+      fullPayData = {
+        ...fullPayData,
+        employeeName: matchedEmp.firstName && matchedEmp.lastName ? `${matchedEmp.firstName} ${matchedEmp.lastName}` : (matchedEmp.name || fullPayData.employeeName),
+        employeeId: matchedEmp.employeeCode || matchedEmp.id || fullPayData.employeeId,
+        designation: matchedEmp.designation || fullPayData.designation,
+        department: matchedEmp.department?.name || matchedEmp.department || fullPayData.department,
+        joiningDate: matchedEmp.joiningDate ? new Date(matchedEmp.joiningDate).toLocaleDateString('en-IN') : (matchedEmp.joinDate || fullPayData.joiningDate),
+        workLocation: matchedEmp.workLocation || matchedEmp.branch || fullPayData.workLocation,
+        bankName: (matchedEmp?.bankName && matchedEmp.bankName !== 'HDFC Bank') ? matchedEmp.bankName : (fullPayData.bankName && fullPayData.bankName !== 'HDFC Bank' ? fullPayData.bankName : 'Union Bank of India'),
+        accountNumber: (matchedEmp?.accountNumber && matchedEmp.accountNumber !== 'XXXXX1234') ? matchedEmp.accountNumber : (fullPayData.accountNumber && fullPayData.accountNumber !== 'XXXXX1234' ? fullPayData.accountNumber : '88492014421'),
+      };
+    }
+
+    setSelectedPayslip(fullPayData);
+    setIsViewPayslipOpen(true);
   };
 
   const handleStatusChange = async (payslipId, newStatus) => {
